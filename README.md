@@ -1,10 +1,11 @@
 *****IMPORTANT: 
-**Designed for Blender 4.3 and above. May not work in full on earlier versions.
-**when you first install it the panel will show up but there will be nothing in it
+**Designed for Blender 4.3 and above. May not work in full on earlier versions but can be installed on 4.0+.
 
-<img width="287" height="362" alt="image" src="https://github.com/user-attachments/assets/1a6e5b7d-5d78-41f6-8292-d7cba352a7b1" />
+Installation - drag the Zip and drop it into blenders Viewport. You may be prompted to disable conflicting addons (there are 2) to use this addon you MUST disable both if you have them (they are built into this addon so you wont be missing them they are just included).
+Deactivate the first one if needed you will then be prompted to quit blender, your choice to save and quit or just quit. relaunch blender with your Icon on the desktop, If you are then prompted to deactivate the second one do so and then quit once more.
+(if none of the conflicting mods were active you will still need to quit blender at least once with its corresponding pop up to fully activate this addon)
 
- just close blender and relaunch it and the side panel will populate.
+Now that the addon is installed open your side panel (Shortcut N) then click on the Giants I3D Exporter REWORKED tab
  
 <img width="280" height="815" alt="image" src="https://github.com/user-attachments/assets/14c23bff-7f51-4c6c-8fc3-5354966b1892" />
 
@@ -28,8 +29,23 @@ then close this window and all of the warnings will go away
 
 Change log
 ----------
+V 10.0.1 (10.12.2025) Build: ALPHA2
+------------------
+- Renamed Folder and Installer from io_export_i3d_10_0_11 to io_export_i3d_reworked
+- Added prompt that warns user that the official "Giants" exporter is active and both can not be active concurrently - ability to disable Giants Version and enable this one with single button
+- Added a warning prompt on install, that Blender needs to start a new session for addon to work - quit, save and quit, and cancel button for responses
+- Added a warning prompt on disable Giants Official exporter, that Blender needs to start a new session for addon to work - quit, save and quit, and cancel button for responses
+- Added a check on every start of a new blender session to ensure user did not re-enable Giants Official exporter while this exporter is active - Only one may be active at a time.
+- Full rebuild to the UV Mapping tool (previously named Vehicle Array Tool) Now Rebuilt and Optimized for Farming Simulator 25 No longer has FS22 Material properties
+- Added a "Snow Heap Mode" - REQUIRED to be enabled if doing Snow Heap Exporting (Roof Snow that Piles Up)
+- Built the Delta Vertex Color Tool Into this build - Original by Fuxna & Redphoenix
+- major Overhaul to Delta Vertex Color Tool to allow it to work on Newer and Older Blenders
+- Added prompt that warns user if the "Delta Vertex Color Tool" is active and both can not be active concurrently - ability to disable Fuxna & Redphoenix version and enable this one with single button
+- Added a "Delta Vertex Info tab" in the Tools tab of the Giants Panel with Links to Youtube Videos and credits to Fuxna & Redphoenix and a button to show new users where to find the Data Tab
+- Panel renamed to Giants I3D Exporter REWORKED
+- 
 
-V 10.0.11 (8.12.2025) Build: ALPHA1
+V 10.0.1 (8.12.2025) Build: ALPHA1
 ------------------
 - Updated reworked version for Farming Simulator 25 By DTAPGAMING 
 
