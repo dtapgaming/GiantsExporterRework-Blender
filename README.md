@@ -1,4 +1,8 @@
 *****IMPORTANT: 
+DO NOT DOWNLOAD FROM HERE <img width="604" height="111" alt="image" src="https://github.com/user-attachments/assets/50efcc9c-4248-47a9-99a9-af22115e1c42" />
+
+
+
 **Designed for Blender 4.3 and above. May not work in full on earlier versions but can be installed on 4.0+.
 
 Installation - drag the Zip and drop it into blenders Viewport. You may be prompted to disable conflicting addons (there are 2) to use this addon you MUST disable both if you have them (they are built into this addon so you wont be missing them they are just included).
