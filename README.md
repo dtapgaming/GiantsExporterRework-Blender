@@ -1,7 +1,10 @@
 *****IMPORTANT: 
 DO NOT DOWNLOAD FROM HERE <img width="604" height="111" alt="image" src="https://github.com/user-attachments/assets/50efcc9c-4248-47a9-99a9-af22115e1c42" />
 
+Instead Download from here <img width="393" height="463" alt="image" src="https://github.com/user-attachments/assets/db06d9ab-8703-4640-a9b9-9d27270f1a4c" />
 
+
+or it wont work!!!
 
 **Designed for Blender 4.3 and above. May not work in full on earlier versions but can be installed on 4.0+.
 
