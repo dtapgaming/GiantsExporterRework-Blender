@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_utc": "2025-12-14T12:43:56Z",
+  "generated_utc": "2025-12-14T21:35:07Z",
   "channels": {
     "stable": {
       "version": [
@@ -61,14 +61,14 @@
         0
       ],
       "download": {
-        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.12.ALPHA1/io_export_i3d_reworked.zip"
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.12.ALPHA2/io_export_i3d_reworked.zip"
       },
       "notes": [
         "Fix: Restart-required prompt on fresh install.",
         "Fix: Preferences panel draw crash.",
         "New: Update channels with rollback support."
       ],
-      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.12.ALPHA1",
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.12.ALPHA2",
       "message": "Alpha build available. Dtapgaming Test"
     }
   }
