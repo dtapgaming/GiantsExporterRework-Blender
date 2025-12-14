@@ -76,7 +76,15 @@ def _extract_notes_from_release_body(release_body: str) -> list[str]:
          - Fix: ...
          - New: ...
 
-    2) Otherwise: collects bullet/numbered lines from anywhere in the body.
+    2) Heading blocks:
+         Patch Notes:
+         - ...
+       or
+         Change Log:
+         - ...
+       (Also supports plain lines under those headings.)
+
+    3) Otherwise: collects bullet/numbered lines from anywhere in the body.
 
     Returns a list of strings (no bullet prefix). Empty list if nothing usable.
     """
@@ -112,7 +120,7 @@ def _extract_notes_from_release_body(release_body: str) -> list[str]:
             return [n for n in notes if n][:25]
 
     # 1b) Heading blocks: "Patch Notes:" and/or "Change Log:"
-    def _extract_bullets_after_heading(start_index: int) -> list[str]:
+    def _extract_items_after_heading(start_index: int) -> list[str]:
         notes: list[str] = []
         for j in range(start_index + 1, len(lines)):
             s = lines[j].strip()
@@ -138,9 +146,8 @@ def _extract_notes_from_release_body(release_body: str) -> list[str]:
                 notes.append(m.group(1).strip())
                 continue
 
-            # Stop when we hit something that isn't part of the list.
-            if notes:
-                break
+            # NEW: allow plain text lines under the heading
+            notes.append(s)
 
         return notes
 
@@ -149,9 +156,9 @@ def _extract_notes_from_release_body(release_body: str) -> list[str]:
     for i, line in enumerate(lines):
         s = line.strip()
         if re.match(r"^patch\s+notes\s*:", s, re.IGNORECASE):
-            collected.extend(_extract_bullets_after_heading(i))
+            collected.extend(_extract_items_after_heading(i))
         elif re.match(r"^change\s+log\s*:", s, re.IGNORECASE):
-            collected.extend(_extract_bullets_after_heading(i))
+            collected.extend(_extract_items_after_heading(i))
 
     # De-dupe while preserving order
     if collected:
@@ -164,7 +171,6 @@ def _extract_notes_from_release_body(release_body: str) -> list[str]:
         if out:
             return out[:25]
 
-    
     # 2) Fallback: gather bullet/numbered items from the entire release body.
     notes: list[str] = []
     for line in lines:
@@ -182,7 +188,6 @@ def _extract_notes_from_release_body(release_body: str) -> list[str]:
             notes.append(m.group(1).strip())
             continue
 
-    # Keep it short in the manifest.
     notes = [n for n in notes if n]
     return notes[:25]
 
@@ -245,7 +250,6 @@ def main() -> None:
     if extracted_notes:
         ch["notes"] = extracted_notes
     else:
-        # Keep what was already in the manifest (if any).
         if existing_notes is not None:
             ch["notes"] = existing_notes
 
