@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "generated_utc": "2025-12-14T01:04:47Z",
+  "channels": {
+    "stable": {
+      "version": [
+        10,
+        0,
+        0
+      ],
+      "min_blender": [
+        4,
+        0,
+        0
+      ],
+      "download": {
+        "primary": "https://i3dexportStable1.dtapgaming.com",
+        "secondary": "https://i3dexportStable2.dtapgaming.com"
+      },
+      "notes_url": "https://i3dexportStable1.dtapgaming.com",
+      "message": "Stable update available."
+    },
+    "beta": {
+      "version": [
+        10,
+        0,
+        0
+      ],
+      "min_blender": [
+        4,
+        0,
+        0
+      ],
+      "download": {
+        "primary": "https://i3dexportBeta1.dtapgaming.com",
+        "secondary": "https://i3dexportBeta2.dtapgaming.com"
+      },
+      "notes_url": "https://i3dexportBeta1.dtapgaming.com",
+      "message": "Beta build available."
+    },
+    "alpha": {
+      "version": [
+        10,
+        0,
+        0
+      ],
+      "min_blender": [
+        4,
+        0,
+        0
+      ],
+      "download": {
+        "primary": "https://i3dexportAlpha1.dtapgaming.com",
+        "secondary": "https://i3dexportAlpha2.dtapgaming.com"
+      },
+      "notes_url": "https://i3dexportAlpha1.dtapgaming.com",
+      "message": "Alpha build available."
+    }
+  }
+}
