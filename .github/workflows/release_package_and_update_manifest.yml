@@ -2,7 +2,7 @@ name: Package Addon + Update Manifest
 
 on:
   release:
-    types: [published]
+    types: [published, edited]
 
 permissions:
   contents: write
@@ -11,28 +11,40 @@ jobs:
   package-and-update:
     runs-on: ubuntu-latest
     steps:
+      # ------------------------------------------------------------
+      # Only on "published": checkout tag, build zip, upload asset
+      # ------------------------------------------------------------
       - name: Checkout release tag
+        if: ${{ github.event.action == 'published' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
 
       - name: Build addon zip (io_export_i3d_reworked.zip)
+        if: ${{ github.event.action == 'published' }}
         run: |
           test -d io_export_i3d_reworked
           rm -f io_export_i3d_reworked.zip
           zip -r io_export_i3d_reworked.zip io_export_i3d_reworked
 
       - name: Upload asset to GitHub Release
+        if: ${{ github.event.action == 'published' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ github.event.release.tag_name }}" io_export_i3d_reworked.zip --clobber
 
+      # ------------------------------------------------------------
+      # Always: checkout main into main_branch, update manifest, commit
+      # (Runs on both published + edited)
+      # ------------------------------------------------------------
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
           path: main_branch
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
