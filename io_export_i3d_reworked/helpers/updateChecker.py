@@ -1,0 +1,811 @@
+# --------------------------------------------------------------
+# Update Checker (Legacy Add-on)
+# - Respects Blender "Allow Online Access" (bpy.app.online_access)
+# - Opt-in via Add-on Preferences
+# - Non-blocking (threaded fetch + main-thread popup)
+# --------------------------------------------------------------
+
+import bpy
+import json
+import threading
+import time
+import urllib.request
+import urllib.error
+import urllib.parse
+import importlib
+import os
+import tempfile
+
+
+# Session-only state
+_I3D_UPDATE_CHECKED_THIS_SESSION = False
+_I3D_UPDATE_THREAD = None
+_I3D_UPDATE_RESULT = None
+_I3D_UPDATE_OFFER = None
+_I3D_UPDATE_ERROR = None
+# Manual-check flag (used to show "No updates" or error dialogs when the user clicks "Check Now")
+_I3D_LAST_CHECK_WAS_MANUAL = False
+
+
+def _sanitize_url(url: str) -> str:
+    """Best-effort cleanup for hosting/redirect quirks.
+
+    IONOS "Instant Domain" forwarding has been observed to append "/defaultsite"
+    to the destination URL, sometimes even inside query parameter values.
+    This helper removes common variants so the add-on can still open/download.
+    """
+    if not url or not isinstance(url, str):
+        return url
+
+    u = url.strip()
+
+    # Fast path: strip a literal trailing suffix.
+    if u.endswith('/defaultsite'):
+        u = u[:-len('/defaultsite')]
+
+    # Also strip URL-encoded variant at the end.
+    if u.endswith('%2Fdefaultsite') or u.endswith('%2fdefaultsite'):
+        u = u[:-len('%2Fdefaultsite')]
+
+    # Parse and clean query parameter values (e.g. id=<fileid>/defaultsite)
+    try:
+        parts = urllib.parse.urlsplit(u)
+
+        # Clean path too, in case it was appended there.
+        path = parts.path or ''
+        if path.endswith('/defaultsite'):
+            path = path[:-len('/defaultsite')]
+
+        q = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+        cleaned = []
+        for k, v in q:
+            if isinstance(v, str):
+                if v.endswith('/defaultsite'):
+                    v = v[:-len('/defaultsite')]
+                if v.endswith('%2Fdefaultsite') or v.endswith('%2fdefaultsite'):
+                    v = v[:-len('%2Fdefaultsite')]
+            cleaned.append((k, v))
+        query = urllib.parse.urlencode(cleaned, doseq=True)
+
+        u = urllib.parse.urlunsplit((parts.scheme, parts.netloc, path, query, parts.fragment))
+    except Exception:
+        # If parsing fails, fall back to simple replacements.
+        u = u.replace('/defaultsite', '')
+        u = u.replace('%2Fdefaultsite', '').replace('%2fdefaultsite', '')
+
+    return u
+
+
+def _get_addon_module():
+    try:
+        return importlib.import_module("io_export_i3d_reworked")
+    except Exception:
+        return None
+
+
+def _get_local_version_tuple():
+    mod = _get_addon_module()
+    if mod and hasattr(mod, "bl_info"):
+        v = mod.bl_info.get("version", (0, 0, 0))
+        if isinstance(v, (list, tuple)) and len(v) >= 3:
+            return (int(v[0]), int(v[1]), int(v[2]))
+    return (0, 0, 0)
+
+
+
+def _get_addon_display_name():
+    # Best-effort: read bl_info['name'] from the add-on module.
+    try:
+        import importlib
+        mod = importlib.import_module("io_export_i3d_reworked")
+        bl = getattr(mod, "bl_info", None)
+        if isinstance(bl, dict):
+            return bl.get("name") or "io_export_i3d_reworked"
+    except Exception:
+        pass
+    return "io_export_i3d_reworked"
+
+def _get_addon_prefs():
+    addon = bpy.context.preferences.addons.get("io_export_i3d_reworked")
+    if addon is None:
+        return None
+    return getattr(addon, "preferences", None)
+
+
+def _online_access_allowed():
+    # Blender 4.2+ provides bpy.app.online_access (read-only).
+    # If missing, assume allowed (older builds).
+    try:
+        return bool(getattr(bpy.app, "online_access", True))
+    except Exception:
+        return True
+
+
+def _parse_version_tuple(v):
+    # Accept [x,y,z] or "x.y.z"
+    if isinstance(v, (list, tuple)) and len(v) >= 3:
+        return (int(v[0]), int(v[1]), int(v[2]))
+    if isinstance(v, str):
+        parts = [p.strip() for p in v.split(".") if p.strip() != ""]
+        if len(parts) >= 3:
+            return (int(parts[0]), int(parts[1]), int(parts[2]))
+    return None
+
+
+def _channel_key_from_pref(channel_pref):
+    # stored as enum identifiers
+    if channel_pref == "ALPHA":
+        return "alpha"
+    if channel_pref == "BETA":
+        return "beta"
+    return "stable"
+
+
+def _fetch_manifest_json(url, timeout_seconds=3.0):
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": f"DTAP-I3D-Exporter/{_get_local_version_tuple()[0]}.{_get_local_version_tuple()[1]}.{_get_local_version_tuple()[2]}",
+            "Accept": "application/json",
+            "Cache-Control": "no-cache",
+        }
+    )
+    with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+        raw = resp.read()
+    return json.loads(raw.decode("utf-8"))
+
+def _fetch_manifest_json_with_fallback(url_primary, url_fallback, timeout_seconds=3.0):
+    # Try primary URL first, then fallback URL (if provided).
+    last_err = None
+
+    if url_primary:
+        try:
+            return _fetch_manifest_json(url_primary, timeout_seconds=timeout_seconds)
+        except Exception as e:
+            last_err = e
+
+    if url_fallback:
+        try:
+            return _fetch_manifest_json(url_fallback, timeout_seconds=timeout_seconds)
+        except Exception as e:
+            last_err = e
+
+    if last_err is not None:
+        raise last_err
+    raise RuntimeError("No manifest URL configured")
+
+
+
+def _update_thread_main(manifest_url_primary, manifest_url_fallback, channel_key):
+    global _I3D_UPDATE_RESULT, _I3D_UPDATE_ERROR
+
+    try:
+        data = _fetch_manifest_json_with_fallback(manifest_url_primary, manifest_url_fallback, timeout_seconds=3.0)
+
+        channels = data.get("channels", {})
+        ch = channels.get(channel_key)
+        if ch is None:
+            raise ValueError(f"Manifest missing channel '{channel_key}'")
+
+        remote_v = _parse_version_tuple(ch.get("version"))
+        if remote_v is None:
+            raise ValueError("Manifest channel has invalid 'version'")
+
+        local_v = _get_local_version_tuple()
+
+        # optional: blender minimum
+        blender_min = _parse_version_tuple(ch.get("min_blender")) if ch.get("min_blender") is not None else None
+
+        download_primary = None
+        download_secondary = None
+        dl = ch.get("download", {})
+        if isinstance(dl, dict):
+            download_primary = dl.get("primary")
+            download_secondary = dl.get("secondary")
+        else:
+            download_primary = ch.get("download_url")  # legacy/simple manifest support
+
+        notes_url = ch.get("notes_url")
+        message = ch.get("message")
+
+        _I3D_UPDATE_RESULT = {
+            "channel": channel_key,
+            "local_version": local_v,
+            "remote_version": remote_v,
+            "min_blender": blender_min,
+            "download_primary": download_primary,
+            "download_secondary": download_secondary,
+            "notes_url": notes_url,
+            "message": message,
+        }
+        _I3D_UPDATE_ERROR = None
+
+    except Exception as e:
+        _I3D_UPDATE_RESULT = None
+        _I3D_UPDATE_ERROR = str(e)
+        try:
+            mod = importlib.import_module("io_export_i3d_reworked")
+            name = getattr(mod, "bl_info", {}).get("name", "io_export_i3d_reworked")
+        except Exception:
+            name = "io_export_i3d_reworked"
+        print(f"{name} Failed to check for updates")
+
+
+def _format_version(v):
+    try:
+        return f"{int(v[0])}.{int(v[1])}.{int(v[2])}"
+    except Exception:
+        return "0.0.0"
+
+
+
+class I3D_OT_UpdateCheckInfoDialog(bpy.types.Operator):
+    bl_idname = "i3d.update_check_info_dialog"
+    bl_label = "Update Check"
+    bl_options = {'INTERNAL'}
+
+    title: bpy.props.StringProperty(default="Update Check")
+    message: bpy.props.StringProperty(default="")
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=520)
+
+    def draw(self, context):
+        layout = self.layout
+        box = layout.box()
+        box.label(text=self.title, icon='INFO')
+        if self.message:
+            for line in self.message.split("\n"):
+                box.label(text=line)
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+class I3D_OT_OpenURL(bpy.types.Operator):
+    bl_idname = "i3d.open_url"
+    bl_label = "Open URL"
+    bl_options = {'INTERNAL'}
+
+    url: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        if self.url:
+            try:
+                bpy.ops.wm.url_open(url=_sanitize_url(self.url))
+            except Exception as e:
+                print(f"Unable to open URL: {e}")
+        return {'FINISHED'}
+
+
+class I3D_OT_CheckForUpdates(bpy.types.Operator):
+    bl_idname = "i3d.check_for_updates"
+    bl_label = "Check for Updates"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        global _I3D_LAST_CHECK_WAS_MANUAL
+        _I3D_LAST_CHECK_WAS_MANUAL = True
+        self.report({'INFO'}, 'Checking for updates...')
+        start_update_check(force=True)
+        return {'FINISHED'}
+
+
+class I3D_OT_UpdateAvailableDialog(bpy.types.Operator):
+    bl_idname = "i3d.update_available_dialog"
+    bl_label = "Update Available"
+    bl_options = {'INTERNAL'}
+
+    def invoke(self, context, event):
+        # Snapshot offer so redraws don't lose the content.
+        try:
+            global _I3D_UPDATE_OFFER
+            self._offer = dict(_I3D_UPDATE_OFFER or {})
+        except Exception:
+            self._offer = {}
+        return context.window_manager.invoke_props_dialog(self, width=560)
+
+    def draw(self, context):
+        layout = self.layout
+        prefs = _get_addon_prefs()
+
+        r = getattr(self, '_offer', None) or {}
+        local_v = r.get("local_version", (0, 0, 0))
+        remote_v = r.get("remote_version", (0, 0, 0))
+        channel = r.get("channel", "stable")
+
+        header = layout.box()
+        header.alert = True
+        action = "Update" if tuple(remote_v) > tuple(local_v) else ("Rollback" if tuple(remote_v) < tuple(local_v) else "Install")
+        header.label(text=f"{_get_addon_display_name()}: {channel.upper()} {action} available!", icon='IMPORT')
+
+        layout.label(text=f"Installed: {_format_version(local_v)}")
+        layout.label(text=f"Latest:    {_format_version(remote_v)}")
+
+        if r.get("message"):
+            msg = layout.box()
+            msg.label(text=str(r.get("message")), icon='INFO')
+
+        layout.separator()
+
+        # Primary actions
+        row = layout.row()
+        row.scale_y = 1.2
+        row.operator("i3d.perform_update", text="Update", icon='FILE_TICK')
+
+        op = row.operator("i3d.skip_update_version", text="Skip", icon='CANCEL')
+        op.version_str = _format_version(remote_v)
+
+        if r.get("notes_url"):
+            row = layout.row()
+            op = row.operator("i3d.open_url", text="Release Notes", icon='HELP')
+            op.url = r.get("notes_url")
+
+        # Warning about OK/Cancel
+        warn = layout.box()
+        warn.alert = True
+        warn.label(text="Use Update/Skip above. OK/Cancel only closes this dialog.", icon='ERROR')
+
+        layout.separator()
+
+        # preference actions
+        if prefs is not None:
+            row = layout.row()
+            op = row.operator("i3d.disable_update_checks", text="Disable Update Checks", icon='CHECKBOX_HLT')
+
+    def execute(self, context):
+        # OK/Cancel just closes this dialog
+        return {'FINISHED'}
+
+
+class I3D_OT_SkipUpdateVersion(bpy.types.Operator):
+    bl_idname = "i3d.skip_update_version"
+    bl_label = "Skip Update Version"
+    bl_options = {'INTERNAL'}
+
+    version_str: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+        prefs = _get_addon_prefs()
+        if prefs is not None:
+            # Store skip per selected channel
+            channel_pref = getattr(prefs, "update_channel", "STABLE")
+            if channel_pref == "ALPHA":
+                prefs.update_skip_version_alpha = self.version_str
+            elif channel_pref == "BETA":
+                prefs.update_skip_version_beta = self.version_str
+            else:
+                prefs.update_skip_version_stable = self.version_str
+            try:
+                bpy.ops.wm.save_userpref()
+            except Exception:
+                pass
+        return {'FINISHED'}
+
+
+class I3D_OT_DisableUpdateChecks(bpy.types.Operator):
+    bl_idname = "i3d.disable_update_checks"
+    bl_label = "Disable Update Checks"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        prefs = _get_addon_prefs()
+        if prefs is not None:
+            prefs.enable_update_checks = False
+            try:
+                bpy.ops.wm.save_userpref()
+            except Exception:
+                pass
+        return {'FINISHED'}
+
+
+def _should_offer_update(result_dict, prefs):
+    if result_dict is None or prefs is None:
+        return False
+
+    remote_v = result_dict.get("remote_version")
+    local_v = result_dict.get("local_version")
+
+    if remote_v is None or local_v is None:
+        return False
+
+    # Respect "skip version" (per-channel)
+    channel_pref = getattr(prefs, "update_channel", "STABLE")
+    if channel_pref == "ALPHA":
+        skip = getattr(prefs, "update_skip_version_alpha", "")
+    elif channel_pref == "BETA":
+        skip = getattr(prefs, "update_skip_version_beta", "")
+    else:
+        skip = getattr(prefs, "update_skip_version_stable", "")
+
+    if skip:
+        try:
+            if skip.strip() == _format_version(remote_v):
+                return False
+        except Exception:
+            pass
+
+    return tuple(remote_v) != tuple(local_v)
+
+
+
+
+def _find_invoke_override():
+    """Return a best-effort override context for invoking dialogs from timers."""
+    try:
+        wm = bpy.context.window_manager
+        if not wm or not getattr(wm, "windows", None):
+            return None
+        win = wm.windows[0]
+        screen = win.screen
+        if not screen:
+            return {"window": win}
+
+        # Prefer Preferences area when available.
+        area = None
+        for a in screen.areas:
+            if a.type == 'PREFERENCES':
+                area = a
+                break
+        if area is None and screen.areas:
+            area = screen.areas[0]
+
+        region = None
+        if area is not None:
+            for r in area.regions:
+                if r.type == 'WINDOW':
+                    region = r
+                    break
+
+        override = {"window": win, "screen": screen}
+        if area is not None:
+            override["area"] = area
+        if region is not None:
+            override["region"] = region
+        return override
+    except Exception:
+        return None
+
+
+def _invoke_op(op_idname, invoke_type='INVOKE_DEFAULT', **kwargs):
+    """Invoke an operator in the best available UI context.
+
+    Blender 4.5+ can be picky about passing context overrides as positional args.
+    Using bpy.context.temp_override is more stable than calling ops with an
+    override dict positional parameter.
+    """
+    try:
+        cat, op = op_idname.split('.', 1)
+        fn = getattr(getattr(bpy.ops, cat), op)
+
+        override = _find_invoke_override()
+        if override:
+            try:
+                with bpy.context.temp_override(**override):
+                    fn(invoke_type, **kwargs)
+            except TypeError:
+                # Fallback for older builds that don't support temp_override in this way.
+                fn(invoke_type, **kwargs)
+        else:
+            fn(invoke_type, **kwargs)
+        return True
+    except Exception as e:
+        print(f"Unable to invoke operator '{op_idname}': {e}")
+        return False
+
+
+def _poll_update_result_timer():
+    global _I3D_UPDATE_THREAD, _I3D_UPDATE_RESULT, _I3D_UPDATE_ERROR, _I3D_LAST_CHECK_WAS_MANUAL
+
+    # Wait for thread completion (or results)
+    if _I3D_UPDATE_THREAD is not None and _I3D_UPDATE_THREAD.is_alive():
+        return 0.25
+
+    prefs = _get_addon_prefs()
+    if prefs is None:
+        return None
+
+    # If we got a result and an install should be offered (upgrade OR rollback), show the update dialog.
+    if _I3D_UPDATE_RESULT and _should_offer_update(_I3D_UPDATE_RESULT, prefs):
+        # Snapshot the offer so the dialog can redraw safely even if globals are cleared.
+        global _I3D_UPDATE_OFFER
+        _I3D_UPDATE_OFFER = dict(_I3D_UPDATE_RESULT)
+        _invoke_op('i3d.update_available_dialog')
+        _I3D_LAST_CHECK_WAS_MANUAL = False
+
+        # Clear thread/result for next manual check (keep _I3D_UPDATE_OFFER until user acts)
+        _I3D_UPDATE_THREAD = None
+        _I3D_UPDATE_RESULT = None
+        _I3D_UPDATE_ERROR = None
+        return None
+
+    # For manual checks, show a visible result even when there is no update (or an error).
+    if _I3D_LAST_CHECK_WAS_MANUAL:
+        title = "Update Check"
+        msg = "No updates found."
+        if _I3D_UPDATE_ERROR:
+            msg = f"Failed to check for updates.\n\n{_I3D_UPDATE_ERROR}"
+
+        if not _invoke_op('i3d.update_check_info_dialog', title=title, message=msg):
+            print("Unable to show update result dialog")
+
+        _I3D_LAST_CHECK_WAS_MANUAL = False
+
+    # (Optional) print error to console for debugging, but don't spam users.
+    if _I3D_UPDATE_ERROR:
+        print(f"Update check error: {_I3D_UPDATE_ERROR}")
+
+    # Clear thread/result for next manual check
+    _I3D_UPDATE_THREAD = None
+    _I3D_UPDATE_RESULT = None
+    _I3D_UPDATE_ERROR = None
+
+    return None
+
+
+def start_update_check(force=False):
+    """Kick off an update check in the background.
+
+    force=True ignores "checked this session" and runs again.
+    """
+    global _I3D_UPDATE_CHECKED_THIS_SESSION, _I3D_UPDATE_THREAD
+
+    prefs = _get_addon_prefs()
+    if prefs is None:
+        return
+
+    if not getattr(prefs, "enable_update_checks", False):
+        return
+
+    if not _online_access_allowed():
+        return
+
+    if (not force) and _I3D_UPDATE_CHECKED_THIS_SESSION:
+        return
+
+    manifest_url_primary = getattr(prefs, "update_manifest_url", "").strip()
+    manifest_url_fallback = getattr(prefs, "update_manifest_url_fallback", "").strip()
+    if not manifest_url_primary and not manifest_url_fallback:
+        return
+
+    channel_key = _channel_key_from_pref(getattr(prefs, "update_channel", "STABLE"))
+
+    # Avoid parallel checks
+    if _I3D_UPDATE_THREAD is not None and _I3D_UPDATE_THREAD.is_alive():
+        return
+
+    _I3D_UPDATE_CHECKED_THIS_SESSION = True
+
+    _I3D_UPDATE_THREAD = threading.Thread(
+        target=_update_thread_main,
+        args=(manifest_url_primary, manifest_url_fallback, channel_key),
+        daemon=True,
+    )
+    _I3D_UPDATE_THREAD.start()
+
+    # Poll on main thread (needed to invoke operators)
+    try:
+        bpy.app.timers.register(_poll_update_result_timer, first_interval=0.25)
+    except Exception:
+        pass
+
+
+def _startup_timer():
+    start_update_check(force=False)
+    return None
+
+
+# --------------------------------------------------------------
+# Auto Update (download + install)
+# --------------------------------------------------------------
+
+_I3D_UPDATE_INSTALL_ERROR = None
+
+def _download_bytes(url, timeout_seconds=6.0):
+    url = _sanitize_url(url)
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": f"DTAP-I3D-Exporter/{_get_local_version_tuple()[0]}.{_get_local_version_tuple()[1]}.{_get_local_version_tuple()[2]}",
+            "Accept": "*/*",
+            "Cache-Control": "no-cache",
+        }
+    )
+    with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+        return resp.read()
+
+def _download_zip_with_fallback(url_primary, url_secondary):
+    last_err = None
+
+    if url_primary:
+        try:
+            return _download_bytes(url_primary, timeout_seconds=12.0), url_primary
+        except Exception as e:
+            last_err = e
+
+    if url_secondary:
+        try:
+            return _download_bytes(url_secondary, timeout_seconds=12.0), url_secondary
+        except Exception as e:
+            last_err = e
+
+    if last_err is not None:
+        raise last_err
+    raise RuntimeError("No download URL configured")
+
+
+class I3D_OT_PerformUpdate(bpy.types.Operator):
+    bl_idname = "i3d.perform_update"
+    bl_label = "Update Add-on"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        global _I3D_UPDATE_INSTALL_ERROR
+
+        prefs = _get_addon_prefs()
+        if prefs is None:
+            return {'CANCELLED'}
+
+        r = _I3D_UPDATE_OFFER or {}
+        url_primary = r.get("download_primary")
+        url_secondary = r.get("download_secondary")
+
+        # Download ZIP (primary -> secondary)
+        try:
+            data, used_url = _download_zip_with_fallback(url_primary, url_secondary)
+        except Exception as e:
+            _I3D_UPDATE_INSTALL_ERROR = f"Download failed: {e}"
+            try:
+                bpy.ops.i3d.update_failed_dialog('INVOKE_DEFAULT')
+            except Exception:
+                pass
+            return {'FINISHED'}
+
+        # Write to temp zip
+        try:
+            temp_dir = getattr(bpy.app, "tempdir", None) or tempfile.gettempdir()
+            temp_zip = os.path.join(temp_dir, "io_export_i3d_reworked_update.zip")
+            with open(temp_zip, "wb") as f:
+                f.write(data)
+        except Exception as e:
+            _I3D_UPDATE_INSTALL_ERROR = f"Unable to write update zip: {e}"
+            try:
+                bpy.ops.i3d.update_failed_dialog('INVOKE_DEFAULT')
+            except Exception:
+                pass
+            return {'FINISHED'}
+
+        # Install (overwrite) and re-enable
+        def _install_timer():
+            global _I3D_UPDATE_INSTALL_ERROR
+            try:
+                # Disable before overwriting
+                try:
+                    bpy.ops.preferences.addon_disable(module="io_export_i3d_reworked")
+                except Exception:
+                    pass
+
+                try:
+                    bpy.ops.preferences.addon_install(filepath=temp_zip, overwrite=True)
+                except TypeError:
+                    bpy.ops.preferences.addon_install(filepath=temp_zip)
+
+                try:
+                    bpy.ops.preferences.addon_enable(module="io_export_i3d_reworked")
+                except Exception:
+                    pass
+
+                try:
+                    bpy.ops.wm.save_userpref()
+                except Exception:
+                    pass
+
+                _I3D_UPDATE_INSTALL_ERROR = None
+                return None
+            except Exception as e:
+                _I3D_UPDATE_INSTALL_ERROR = f"Install failed: {e}"
+                try:
+                    bpy.ops.i3d.update_failed_dialog('INVOKE_DEFAULT')
+                except Exception:
+                    pass
+                return None
+
+        try:
+            bpy.app.timers.register(_install_timer, first_interval=0.1)
+        except Exception as e:
+            _I3D_UPDATE_INSTALL_ERROR = f"Unable to schedule install: {e}"
+            try:
+                bpy.ops.i3d.update_failed_dialog('INVOKE_DEFAULT')
+            except Exception:
+                pass
+
+        return {'FINISHED'}
+
+
+class I3D_OT_UpdateFailedDialog(bpy.types.Operator):
+    bl_idname = "i3d.update_failed_dialog"
+    bl_label = "Update Failed"
+    bl_options = {'INTERNAL'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=560)
+
+    def draw(self, context):
+        layout = self.layout
+
+        header = layout.box()
+        header.alert = True
+        header.label(text="Auto update failed.", icon='ERROR')
+
+        if _I3D_UPDATE_INSTALL_ERROR:
+            layout.label(text=str(_I3D_UPDATE_INSTALL_ERROR))
+
+        r = _I3D_UPDATE_OFFER or {}
+
+        row = layout.row()
+        if r.get("download_primary"):
+            op = row.operator("i3d.open_url", text="Manual Download (Primary)", icon='URL')
+            op.url = r.get("download_primary")
+
+        if r.get("download_secondary"):
+            op = row.operator("i3d.open_url", text="Manual Download (Secondary)", icon='URL')
+            op.url = r.get("download_secondary")
+
+        if r.get("notes_url"):
+            op = layout.operator("i3d.open_url", text="Release Notes", icon='HELP')
+            op.url = r.get("notes_url")
+
+        warn = layout.box()
+        warn.alert = True
+        warn.label(text="After installing manually, restart Blender.", icon='INFO')
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+
+def register():
+    bpy.utils.register_class(I3D_OT_UpdateCheckInfoDialog)
+    bpy.utils.register_class(I3D_OT_OpenURL)
+    bpy.utils.register_class(I3D_OT_CheckForUpdates)
+    bpy.utils.register_class(I3D_OT_UpdateAvailableDialog)
+    bpy.utils.register_class(I3D_OT_SkipUpdateVersion)
+    bpy.utils.register_class(I3D_OT_DisableUpdateChecks)
+    bpy.utils.register_class(I3D_OT_PerformUpdate)
+    bpy.utils.register_class(I3D_OT_UpdateFailedDialog)
+
+    # Run shortly after startup so we don't block registration.
+    try:
+        bpy.app.timers.register(_startup_timer, first_interval=2.0)
+    except Exception:
+        pass
+
+
+def unregister():
+    bpy.utils.unregister_class(I3D_OT_UpdateCheckInfoDialog)
+    try:
+        bpy.utils.unregister_class(I3D_OT_UpdateFailedDialog)
+    except Exception:
+        pass
+    try:
+        bpy.utils.unregister_class(I3D_OT_PerformUpdate)
+    except Exception:
+        pass
+    try:
+        bpy.utils.unregister_class(I3D_OT_DisableUpdateChecks)
+    except Exception:
+        pass
+    try:
+        bpy.utils.unregister_class(I3D_OT_SkipUpdateVersion)
+    except Exception:
+        pass
+    try:
+        bpy.utils.unregister_class(I3D_OT_UpdateAvailableDialog)
+    except Exception:
+        pass
+    try:
+        bpy.utils.unregister_class(I3D_OT_CheckForUpdates)
+    except Exception:
+        pass
+    try:
+        bpy.utils.unregister_class(I3D_OT_OpenURL)
+    except Exception:
+        pass
