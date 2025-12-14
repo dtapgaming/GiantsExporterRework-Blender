@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_utc": "2025-12-14T22:29:14Z",
+  "generated_utc": "2025-12-14T22:29:35Z",
   "channels": {
     "stable": {
       "version": [
@@ -60,9 +60,9 @@
         "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.12.ALPHA2/io_export_i3d_reworked.zip"
       },
       "notes": [
-        "Fix: Restart-required prompt on fresh install.",
-        "Fix: Preferences panel draw crash.",
-        "New: Update channels with rollback support."
+        "Testing - Added added (if alpha switch beta and version name = same still prompt update",
+        "Testing - Added The \u201cChecking for updates\u2026\u201d toast stays alive till prompt executes fail or success (manual checks)",
+        "ALPHA BUILD"
       ],
       "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.12.ALPHA2",
       "message": "Alpha build available. Dtapgaming Test"
