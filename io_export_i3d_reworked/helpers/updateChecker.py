@@ -207,6 +207,9 @@ def _update_thread_main(manifest_url_primary, manifest_url_fallback, channel_key
 
         notes_url = ch.get("notes_url")
         message = ch.get("message")
+        notes = ch.get("notes")
+        if notes is None:
+            notes = ch.get("notes_text")
 
         _I3D_UPDATE_RESULT = {
             "channel": channel_key,
@@ -216,6 +219,7 @@ def _update_thread_main(manifest_url_primary, manifest_url_fallback, channel_key
             "download_primary": download_primary,
             "download_secondary": download_secondary,
             "notes_url": notes_url,
+            "notes": notes,
             "message": message,
         }
         _I3D_UPDATE_ERROR = None
@@ -313,24 +317,69 @@ class I3D_OT_UpdateAvailableDialog(bpy.types.Operator):
         remote_v = r.get("remote_version", (0, 0, 0))
         channel = r.get("channel", "stable")
 
+        is_update = tuple(remote_v) > tuple(local_v)
+        is_rollback = tuple(remote_v) < tuple(local_v)
+
+        # Header
         header = layout.box()
         header.alert = True
-        action = "Update" if tuple(remote_v) > tuple(local_v) else ("Rollback" if tuple(remote_v) < tuple(local_v) else "Install")
-        header.label(text=f"{_get_addon_display_name()}: {channel.upper()} {action} available!", icon='IMPORT')
+        action_word = "Update" if is_update else ("Rollback" if is_rollback else "Install")
+        header.label(
+            text=f"{_get_addon_display_name()}: {channel.upper()} {action_word} available!",
+            icon='IMPORT'
+        )
 
-        layout.label(text=f"Installed: {_format_version(local_v)}")
-        layout.label(text=f"Latest:    {_format_version(remote_v)}")
+        # Version display (extra emphasis for rollbacks)
+        if is_rollback:
+            vbox = layout.box()
+            vbox.label(text="You are going BACK to an older version.", icon='ERROR')
 
+            current_row = vbox.row()
+            current_row.label(text=f"Current (installed): {_format_version(local_v)}", icon='CHECKMARK')
+
+            # Flash the rollback target by alternating alert state
+            flash_on = (int(time.time() * 2.0) % 2) == 0
+            rb = vbox.box()
+            rb.alert = flash_on
+            rb_icon = 'ERROR' if flash_on else 'INFO'
+            rb.label(text=f"Rollback target: {_format_version(remote_v)}", icon=rb_icon)
+        else:
+            layout.label(text=f"Installed: {_format_version(local_v)}")
+            layout.label(text=f"Latest:    {_format_version(remote_v)}")
+
+        # Message from manifest
         if r.get("message"):
             msg = layout.box()
             msg.label(text=str(r.get("message")), icon='INFO')
+
+        # Inline notes (from manifest)
+        notes_lines = []
+        notes_val = r.get("notes")
+        if isinstance(notes_val, list):
+            notes_lines = [str(x) for x in notes_val if str(x).strip()]
+        elif isinstance(notes_val, str):
+            notes_lines = [ln.strip() for ln in notes_val.splitlines() if ln.strip()]
+
+        if notes_lines:
+            nb = layout.box()
+            nb.label(text="Patch Notes:", icon='TEXT')
+            for ln in notes_lines[:12]:
+                nb.label(text=ln[:140])
+            if len(notes_lines) > 12:
+                nb.label(text="(More in Release Notes)", icon='DOT')
 
         layout.separator()
 
         # Primary actions
         row = layout.row()
         row.scale_y = 1.2
-        row.operator("i3d.perform_update", text="Update", icon='FILE_TICK')
+
+        if is_rollback:
+            row.operator("i3d.perform_update", text="Rollback", icon='RECOVER_LAST')
+        elif is_update:
+            row.operator("i3d.perform_update", text="Update", icon='FILE_REFRESH')
+        else:
+            row.operator("i3d.perform_update", text="Install", icon='IMPORT')
 
         op = row.operator("i3d.skip_update_version", text="Skip", icon='CANCEL')
         op.version_str = _format_version(remote_v)
@@ -343,15 +392,16 @@ class I3D_OT_UpdateAvailableDialog(bpy.types.Operator):
         # Warning about OK/Cancel
         warn = layout.box()
         warn.alert = True
-        warn.label(text="Use Update/Skip above. OK/Cancel only closes this dialog.", icon='ERROR')
+        warn.label(text="Use the buttons above. OK/Cancel only closes this dialog.", icon='ERROR')
 
         layout.separator()
 
         # preference actions
         if prefs is not None:
             row = layout.row()
-            op = row.operator("i3d.disable_update_checks", text="Disable Update Checks", icon='CHECKBOX_HLT')
+            row.operator("i3d.disable_update_checks", text="Disable Update Checks", icon='CHECKBOX_HLT')
 
+    
     def execute(self, context):
         # OK/Cancel just closes this dialog
         return {'FINISHED'}
