@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_utc": "2025-12-14T11:20:01Z",
+  "generated_utc": "2025-12-14T12:43:56Z",
   "channels": {
     "stable": {
       "version": [
@@ -27,7 +27,7 @@
       "version": [
         10,
         0,
-        2
+        12
       ],
       "min_blender": [
         4,
@@ -35,14 +35,18 @@
         0
       ],
       "download": {
-        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/REWORKED.ALPHA2/io_export_i3d_reworked.zip"
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.12.BETA2/io_export_i3d_reworked.zip"
       },
       "notes": [
-        "Fix: Restart-required prompt on fresh install.",
-        "Fix: Preferences panel draw crash.",
-        "New: Update channels with rollback support."
+        "New: Built-in Update Checker (Stable/Beta/Alpha) Prompts user at start up if there is an update available allows user to set build type in user preferences for this initial release they will be almost side by side for now - STRONGLY suggest against running Alpha this is my playground things will break frequently and require very frequent updates)",
+        "Manual update added to user pref menu",
+        "Activate online access (for all of blender) added to GUI if user has it disabled but enables updates in the User pref settings for this addon",
+        "*** *** *** Fixed Shader Import Button *** *** ***",
+        "Delta \u2192 Vertex Color Tool Integration tools panel overhaul (now collapsible and in layout is better)",
+        "MAJOR overhaul to the conflict detection and user prompt system now disables both addons at once if active to prevent needing to restart blender twice",
+        "Automatic Game-Relative Export Path Handling rework to handle shaders better"
       ],
-      "notes_url": "https://i3dexportBeta1.dtapgaming.com",
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.12.BETA2",
       "message": "Beta build available. Github Test"
     },
     "alpha": {
