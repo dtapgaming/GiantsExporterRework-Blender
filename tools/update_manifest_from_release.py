@@ -33,13 +33,13 @@ def save_manifest(m: dict) -> None:
 
 def detect_channel(tag: str, prerelease: bool) -> str:
     t = (tag or "").lower()
-    if "ALPHA" in t:
-        return "ALPHA"
-    if "BETA" in t:
-        return "BETA"
-    # If the GitHub Release is marked prerelease but tag doesn't say ALPHA/BETA, treat it as BETA.
+    if "alpha" in t:
+        return "alpha"
+    if "beta" in t:
+        return "beta"
+    # If the GitHub Release is marked prerelease but tag doesn't say alpha/beta, treat it as beta.
     if prerelease:
-        return "BETA"
+        return "beta"
     return "stable"
 
 
