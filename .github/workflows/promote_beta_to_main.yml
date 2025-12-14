@@ -1,4 +1,4 @@
-name: Promote Beta -> Main (Stable)
+name: Promote BETA -> Main (Stable)
 
 on:
   workflow_dispatch: {}
@@ -21,9 +21,9 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-      - name: Fetch beta
+      - name: Fetch BETA
         run: |
-          git fetch origin beta:refs/remotes/origin/beta
+          git fetch origin BETA:refs/remotes/origin/BETA
 
       - name: Preserve main manifest (THIS is the one we keep)
         run: |
@@ -34,11 +34,11 @@ jobs:
             echo "No manifest on main to preserve."
           fi
 
-      - name: Merge beta into main
+      - name: Merge BETA into main
         run: |
-          git merge --no-ff origin/beta -m "Promote beta -> main"
+          git merge --no-ff origin/BETA -m "Promote BETA -> main"
 
-      - name: Restore main manifest (do not allow beta to overwrite)
+      - name: Restore main manifest (do not allow BETA to overwrite)
         run: |
           if test -f /tmp/i3dexport_latest.json; then
             cp /tmp/i3dexport_latest.json i3dexport_latest.json
