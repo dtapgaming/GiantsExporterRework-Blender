@@ -245,6 +245,21 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         default="STABLE",
     )
 
+    # Internal: remembers which update channel the currently installed add-on came from.
+    # Used to force a reinstall prompt when switching between ALPHA <-> BETA even if the version number is identical.
+    update_installed_channel: bpy.props.EnumProperty(
+        name="Installed Channel (Internal)",
+        description="Internal: which update channel the currently installed add-on build came from",
+        items=[
+            ("STABLE", "Stable", "Stable releases"),
+            ("BETA", "Beta", "Beta/pre-release builds"),
+            ("ALPHA", "Alpha", "Alpha/dev builds"),
+        ],
+        default="STABLE",
+        options={'HIDDEN'},
+    )
+
+
     update_manifest_url: bpy.props.StringProperty(
         name="Update Manifest URL",
         description="URL to a JSON file describing the latest versions for each channel",
@@ -349,7 +364,6 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         url_col = body.column()
         url_col.enabled = False
         url_col.prop(self, "update_manifest_url")
-        url_col.prop(self, "update_manifest_url_fallback")
 
         row = body.row()
         row.enabled = bool(online_access)
@@ -376,4 +390,3 @@ def unregister():
     bpy.utils.unregister_class(I3DExporterAddonPreferences)
     bpy.utils.unregister_class(I3D_OT_GuideEnableOnlineAccess)
     bpy.utils.unregister_class(I3D_OT_EnableOnlineAccess)
-
