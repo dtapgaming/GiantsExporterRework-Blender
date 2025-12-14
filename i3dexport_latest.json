@@ -18,7 +18,7 @@
         "secondary": "https://i3dexportStable2.dtapgaming.com"
       },
       "notes_url": "https://i3dexportStable1.dtapgaming.com",
-      "message": "Stable update available."
+      "message": "Stable update available. Google Test"
     },
     "beta": {
       "version": [
@@ -36,7 +36,7 @@
         "secondary": "https://i3dexportBeta2.dtapgaming.com"
       },
       "notes_url": "https://i3dexportBeta1.dtapgaming.com",
-      "message": "Beta build available."
+      "message": "Beta build available. Github Test"
     },
     "alpha": {
       "version": [
@@ -54,7 +54,7 @@
         "secondary": "https://i3dexportAlpha2.dtapgaming.com"
       },
       "notes_url": "https://i3dexportAlpha1.dtapgaming.com",
-      "message": "Alpha build available."
+      "message": "Alpha build available. Dtapgaming Test"
     }
   }
 }
