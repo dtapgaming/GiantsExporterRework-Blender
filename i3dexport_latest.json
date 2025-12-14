@@ -14,7 +14,7 @@
         0
       ],
       "download": {
-        "primary": "https://i3dexportStable1.dtapgaming.com",
+        "primary": "https://drive.usercontent.google.com/download?id=1mR8Mpwp8Jvkrz4ywfYO3CwlrdSWhczxI&export=download&confirm=t",
         "secondary": "https://i3dexportStable2.dtapgaming.com"
       },
       "notes_url": "https://i3dexportStable1.dtapgaming.com",
@@ -32,7 +32,7 @@
         0
       ],
       "download": {
-        "primary": "https://i3dexportBeta1.dtapgaming.com",
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/REWORKED.ALPHA2/io_export_i3d_reworked.zip",
         "secondary": "https://i3dexportBeta2.dtapgaming.com"
       },
       "notes_url": "https://i3dexportBeta1.dtapgaming.com",
