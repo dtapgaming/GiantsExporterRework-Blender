@@ -322,12 +322,10 @@ class I3D_OT_RestartRequiredDialog(bpy.types.Operator):
 
         row = layout.row()
         row.scale_y = 1.2
-        row.operator("i3d.restart_save_and_quit", text="Save & Quit", icon='FILE_TICK')
-        row.operator("i3d.restart_quit", text="Quit", icon='QUIT')
-
-        row = layout.row()
-        row.scale_y = 1.1
-        row.operator("i3d.restart_later", text="Later", icon='PAUSE')
+        # NOTE: Keep icons conservative here. Invalid icon IDs can cause the entire dialog body
+        # to stop drawing (resulting in a blank dialog).
+        row.operator("i3d.restart_save_and_quit", text="Save & Quit")
+        row.operator("i3d.restart_quit", text="Quit")
 
         warning_box = layout.box()
         warning_box.alert = True
@@ -335,6 +333,8 @@ class I3D_OT_RestartRequiredDialog(bpy.types.Operator):
         wrow.label(text="WARNING: Use the buttons above.", icon='ERROR')
         wrow = warning_box.row()
         wrow.label(text="OK/Cancel only closes this dialog.")
+        wrow = warning_box.row()
+        wrow.label(text="Panels may not work until you quit and relaunch Blender.")
 
     def execute(self, context):
         return {'FINISHED'}
@@ -363,15 +363,6 @@ class I3D_OT_RestartQuit(bpy.types.Operator):
             bpy.ops.wm.quit_blender()
         except Exception as e:
             print(f"Unable to quit Blender: {e}")
-        return {'FINISHED'}
-
-
-class I3D_OT_RestartLater(bpy.types.Operator):
-    bl_idname = "i3d.restart_later"
-    bl_label = "Later"
-    bl_options = {'INTERNAL'}
-
-    def execute(self, context):
         return {'FINISHED'}
 
 
@@ -4322,7 +4313,6 @@ def register():
     bpy.utils.register_class( I3D_OT_RestartRequiredDialog )
     bpy.utils.register_class( I3D_OT_RestartSaveAndQuit )
     bpy.utils.register_class( I3D_OT_RestartQuit )
-    bpy.utils.register_class( I3D_OT_RestartLater )
     bpy.utils.register_class( I3D_OT_ResolveAddonConflicts )
     bpy.utils.register_class( I3D_OT_AbortInstallation )
     bpy.utils.register_class( I3D_UIexportSettings )
@@ -4373,7 +4363,6 @@ def unregister():
     bpy.utils.unregister_class( I3D_OT_AlignYAxis )
     bpy.utils.unregister_class( I3D_OT_AbortInstallation )
     bpy.utils.unregister_class( I3D_OT_ResolveAddonConflicts )
-    bpy.utils.unregister_class( I3D_OT_RestartLater )
     bpy.utils.unregister_class( I3D_OT_RestartQuit )
     bpy.utils.unregister_class( I3D_OT_RestartSaveAndQuit )
     bpy.utils.unregister_class( I3D_OT_RestartRequiredDialog )
