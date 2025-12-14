@@ -63,7 +63,7 @@ def main():
     ch["download"]["primary"] = download_url
     ch.setdefault("notes_url", html_url)
     ch["notes_url"] = html_url
-    ch["message"] = f"{channel.capitalize()} build available."
+    ch["message"] = f"A New {channel.capitalize()} Build Update Is Available."
 
     save_manifest(manifest)
     print(f"Updated manifest channel={channel} version={version}")
