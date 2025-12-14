@@ -2,7 +2,11 @@ name: Package Addon + Update Manifest
 
 on:
   release:
-    types: [published, edited]
+    # IMPORTANT:
+    # - "edited" fires when you edit the release body/notes.
+    # - Toggling prerelease <-> release often fires "prereleased" or "released" (not always "edited").
+    # - Keeping all of these ensures "Update release" reliably triggers this workflow.
+    types: [published, edited, prereleased, released]
 
 permissions:
   contents: write
@@ -11,6 +15,14 @@ jobs:
   package-and-update:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug release event payload
+        run: |
+          echo "github.event.action=${{ github.event.action }}"
+          echo "tag=${{ github.event.release.tag_name }}"
+          echo "prerelease=${{ github.event.release.prerelease }}"
+          echo "draft=${{ github.event.release.draft }}"
+          echo "html_url=${{ github.event.release.html_url }}"
+
       # ------------------------------------------------------------
       # Only on "published": checkout tag, build zip, upload asset
       # ------------------------------------------------------------
@@ -37,7 +49,7 @@ jobs:
 
       # ------------------------------------------------------------
       # Always: checkout main into main_branch, update manifest, commit
-      # (Runs on both published + edited)
+      # (Runs on published + edited + prereleased + released)
       # ------------------------------------------------------------
       - name: Checkout main
         uses: actions/checkout@v4
