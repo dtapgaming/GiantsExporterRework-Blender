@@ -1,0 +1,55 @@
+name: Package Addon + Update Manifest
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  package-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Build addon zip (io_export_i3d_reworked.zip)
+        run: |
+          test -d io_export_i3d_reworked
+          rm -f io_export_i3d_reworked.zip
+          zip -r io_export_i3d_reworked.zip io_export_i3d_reworked
+
+      - name: Upload asset to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" io_export_i3d_reworked.zip --clobber
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main_branch
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Update main/i3dexport_latest.json from release event
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          python main_branch/tools/update_manifest_from_release.py
+
+      - name: Commit and push manifest (main)
+        run: |
+          cd main_branch
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add i3dexport_latest.json
+          git diff --cached --quiet || git commit -m "Update manifest for release"
+          git push
