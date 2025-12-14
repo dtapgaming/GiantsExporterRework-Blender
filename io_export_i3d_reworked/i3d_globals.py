@@ -279,6 +279,18 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         options={'HIDDEN'},
     )
 
+    # --------------------------------------------------------------
+    # First-run / Update Init Marker
+    # --------------------------------------------------------------
+    # Used to detect when the add-on was first enabled (or updated) so we can
+    # show a one-time "restart required" dialog.
+    # Stored in preferences so it survives restarts.
+    initialized_version: bpy.props.StringProperty(
+        name="Initialized Version",
+        default="",
+        options={'HIDDEN'},
+    )
+
     def draw(self, context):
         layout = self.layout
 
@@ -348,7 +360,7 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
             import importlib
             mod = importlib.import_module("io_export_i3d_reworked")
             v = mod.bl_info.get("version", (0, 0, 0))
-            col.label(text="Installed Version: {:d}.{:d}.{:d}".format(int(v[0]), int(v[1]), int(v[2])))
+            body.label(text="Installed Version: {:d}.{:d}.{:d}".format(int(v[0]), int(v[1]), int(v[2])))
         except Exception:
             pass
 
