@@ -1,4 +1,4 @@
-name: Promote Alpha -> Beta
+name: Promote ALPHA -> BETA
 
 on:
   workflow_dispatch: {}
@@ -10,10 +10,10 @@ jobs:
   promote:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout beta
+      - name: Checkout BETA
         uses: actions/checkout@v4
         with:
-          ref: beta
+          ref: BETA
           fetch-depth: 0
 
       - name: Configure git
@@ -21,31 +21,31 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-      - name: Fetch alpha
+      - name: Fetch ALPHA
         run: |
-          git fetch origin alpha:refs/remotes/origin/alpha
+          git fetch origin ALPHA:refs/remotes/origin/ALPHA
 
-      - name: Preserve beta manifest
+      - name: Preserve BETA manifest
         run: |
           if test -f i3dexport_latest.json; then
             cp i3dexport_latest.json /tmp/i3dexport_latest.json
-            echo "Saved beta manifest."
+            echo "Saved BETA manifest."
           else
-            echo "No manifest on beta to preserve."
+            echo "No manifest on BETA to preserve."
           fi
 
-      - name: Merge alpha into beta
+      - name: Merge ALPHA into BETA
         run: |
-          git merge --no-ff origin/alpha -m "Promote alpha -> beta"
+          git merge --no-ff origin/ALPHA -m "Promote ALPHA -> BETA"
 
-      - name: Restore beta manifest (do not allow alpha to overwrite)
+      - name: Restore BETA manifest (do not allow ALPHA to overwrite)
         run: |
           if test -f /tmp/i3dexport_latest.json; then
             cp /tmp/i3dexport_latest.json i3dexport_latest.json
             git add i3dexport_latest.json
-            git diff --cached --quiet || git commit -m "Keep beta manifest (do not overwrite during promotion)"
+            git diff --cached --quiet || git commit -m "Keep BETA manifest (do not overwrite during promotion)"
           fi
 
-      - name: Push beta
+      - name: Push BETA
         run: |
-          git push origin beta
+          git push origin BETA
