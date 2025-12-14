@@ -17,6 +17,11 @@
         "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.12/io_export_i3d_reworked.zip",
         "secondary": "https://i3dexportStable2.dtapgaming.com"
       },
+      "notes": [
+  "Fix: Restart-required prompt on fresh install.",
+  "Fix: Preferences panel draw crash.",
+  "New: Update channels with rollback support."
+],
       "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.12",
       "message": "Stable build available."
     },
@@ -35,6 +40,11 @@
         "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/REWORKED.ALPHA2/io_export_i3d_reworked.zip",
         "secondary": "https://i3dexportBeta2.dtapgaming.com"
       },
+      "notes": [
+  "Fix: Restart-required prompt on fresh install.",
+  "Fix: Preferences panel draw crash.",
+  "New: Update channels with rollback support."
+],
       "notes_url": "https://i3dexportBeta1.dtapgaming.com",
       "message": "Beta build available. Github Test"
     },
@@ -53,6 +63,11 @@
         "primary": "https://i3dexportAlpha1.dtapgaming.com",
         "secondary": "https://i3dexportAlpha2.dtapgaming.com"
       },
+      "notes": [
+  "Fix: Restart-required prompt on fresh install.",
+  "Fix: Preferences panel draw crash.",
+  "New: Update channels with rollback support."
+],
       "notes_url": "https://i3dexportAlpha1.dtapgaming.com",
       "message": "Alpha build available. Dtapgaming Test"
     }
