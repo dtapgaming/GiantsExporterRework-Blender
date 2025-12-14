@@ -111,6 +111,60 @@ def _extract_notes_from_release_body(release_body: str) -> list[str]:
                     break
             return [n for n in notes if n][:25]
 
+    # 1b) Heading blocks: "Patch Notes:" and/or "Change Log:"
+    def _extract_bullets_after_heading(start_index: int) -> list[str]:
+        notes: list[str] = []
+        for j in range(start_index + 1, len(lines)):
+            s = lines[j].strip()
+
+            if not s:
+                if notes:
+                    break
+                continue
+
+            # Stop if we hit another heading block.
+            if re.match(r"^(manifest_notes|patch\s+notes|change\s+log)\s*:", s, re.IGNORECASE):
+                if notes:
+                    break
+                continue
+
+            m = re.match(r"^[-*]\s+(.*)$", s)
+            if m:
+                notes.append(m.group(1).strip())
+                continue
+
+            m = re.match(r"^\d+\.\s+(.*)$", s)
+            if m:
+                notes.append(m.group(1).strip())
+                continue
+
+            # Stop when we hit something that isn't part of the list.
+            if notes:
+                break
+
+        return notes
+
+    collected: list[str] = []
+
+    for i, line in enumerate(lines):
+        s = line.strip()
+        if re.match(r"^patch\s+notes\s*:", s, re.IGNORECASE):
+            collected.extend(_extract_bullets_after_heading(i))
+        elif re.match(r"^change\s+log\s*:", s, re.IGNORECASE):
+            collected.extend(_extract_bullets_after_heading(i))
+
+    # De-dupe while preserving order
+    if collected:
+        seen: set[str] = set()
+        out: list[str] = []
+        for n in collected:
+            if n and n not in seen:
+                out.append(n)
+                seen.add(n)
+        if out:
+            return out[:25]
+
+    
     # 2) Fallback: gather bullet/numbered items from the entire release body.
     notes: list[str] = []
     for line in lines:
