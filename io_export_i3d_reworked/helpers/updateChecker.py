@@ -27,6 +27,148 @@ _I3D_UPDATE_ERROR = None
 _I3D_LAST_CHECK_WAS_MANUAL = False
 
 
+
+
+# Persistent "Checking for updates..." status text (session-only state)
+_I3D_UPDATE_STATUS_ACTIVE = False
+_I3D_UPDATE_STATUS_START_TIME = 0.0
+_I3D_UPDATE_STATUS_TIMEOUT_SECONDS = 30.0
+_I3D_UPDATE_STATUS_TIMER_RUNNING = False
+_I3D_UPDATE_STATUS_WAS_MANUAL = False
+
+# Each update check gets a monotonically increasing ID so we can ignore late/stale thread results
+# (e.g. after a 30s UI timeout, since Python threads can't be force-killed safely).
+_I3D_UPDATE_NEXT_CHECK_ID = 0
+_I3D_UPDATE_ACTIVE_CHECK_ID = 0
+_I3D_UPDATE_ERROR_CHECK_ID = 0
+
+
+def _set_workspace_status_text(text):
+    try:
+        ws = bpy.context.workspace
+        ws.status_text_set(text)
+        return True
+    except Exception:
+        return False
+
+
+def _clear_update_status_text():
+    global _I3D_UPDATE_STATUS_ACTIVE, _I3D_UPDATE_STATUS_TIMER_RUNNING, _I3D_UPDATE_STATUS_WAS_MANUAL
+
+    _I3D_UPDATE_STATUS_ACTIVE = False
+    _I3D_UPDATE_STATUS_WAS_MANUAL = False
+
+    try:
+        ws = bpy.context.workspace
+        ws.status_text_set(None)
+    except Exception:
+        pass
+
+
+def _begin_update_status_text(is_manual):
+    global _I3D_UPDATE_STATUS_ACTIVE, _I3D_UPDATE_STATUS_START_TIME, _I3D_UPDATE_STATUS_WAS_MANUAL
+
+    _I3D_UPDATE_STATUS_ACTIVE = True
+    _I3D_UPDATE_STATUS_START_TIME = time.time()
+    _I3D_UPDATE_STATUS_WAS_MANUAL = bool(is_manual)
+
+    _set_workspace_status_text("Checking for updates...")
+    _ensure_update_status_timer()
+
+
+def _ensure_update_status_timer():
+    global _I3D_UPDATE_STATUS_TIMER_RUNNING
+
+    if _I3D_UPDATE_STATUS_TIMER_RUNNING:
+        return
+
+    _I3D_UPDATE_STATUS_TIMER_RUNNING = True
+    try:
+        bpy.app.timers.register(_update_status_text_timer, first_interval=0.25)
+    except Exception:
+        _I3D_UPDATE_STATUS_TIMER_RUNNING = False
+
+
+def _update_status_text_timer():
+    global _I3D_UPDATE_STATUS_TIMER_RUNNING, _I3D_UPDATE_ACTIVE_CHECK_ID, _I3D_LAST_CHECK_WAS_MANUAL
+
+    if not _I3D_UPDATE_STATUS_ACTIVE:
+        _I3D_UPDATE_STATUS_TIMER_RUNNING = False
+        return None
+
+    # If the update check finished, stop and clear (the poll timer will handle dialogs).
+    if _I3D_UPDATE_THREAD is None or (_I3D_UPDATE_THREAD is not None and not _I3D_UPDATE_THREAD.is_alive()):
+        _clear_update_status_text()
+        _I3D_UPDATE_STATUS_TIMER_RUNNING = False
+        return None
+
+    elapsed = time.time() - float(_I3D_UPDATE_STATUS_START_TIME or 0.0)
+    if elapsed >= float(_I3D_UPDATE_STATUS_TIMEOUT_SECONDS):
+        # UI timeout: stop the banner so Blender doesn't feel "stuck" forever.
+        _clear_update_status_text()
+        _I3D_UPDATE_STATUS_TIMER_RUNNING = False
+
+        # For MANUAL checks only: show a visible result so it never feels like "nothing happened".
+        if _I3D_LAST_CHECK_WAS_MANUAL or _I3D_UPDATE_STATUS_WAS_MANUAL:
+            title = "Update Check"
+            msg = "Update check timed out (30s). Please try again."
+            _invoke_op('i3d.update_check_info_dialog', title=title, message=msg)
+            _I3D_LAST_CHECK_WAS_MANUAL = False
+
+        # Ignore late results from this check (we can't kill Python threads safely).
+        _I3D_UPDATE_ACTIVE_CHECK_ID = -1
+        return None
+
+    # Keep the status text alive.
+    _set_workspace_status_text("Checking for updates...")
+    return 1.0
+
+
+# Update dialog flashing (session-only state)
+_I3D_UPDATE_DIALOG_ACTIVE = False
+_I3D_UPDATE_DIALOG_FLASH_STATE = False
+_I3D_UPDATE_DIALOG_FLASH_INTERVAL = 0.20
+_I3D_UPDATE_DIALOG_TIMER_RUNNING = False
+
+
+def _update_dialog_flash_timer():
+    """Timer callback used to drive flashing UI elements in the Update dialog.
+
+    Using a timer avoids the flash changing only when Blender happens to redraw
+    (e.g. when the mouse moves over the dialog).
+    """
+    global _I3D_UPDATE_DIALOG_ACTIVE, _I3D_UPDATE_DIALOG_FLASH_STATE, _I3D_UPDATE_DIALOG_TIMER_RUNNING
+
+    if not _I3D_UPDATE_DIALOG_ACTIVE:
+        _I3D_UPDATE_DIALOG_TIMER_RUNNING = False
+        return None
+
+    _I3D_UPDATE_DIALOG_FLASH_STATE = not bool(_I3D_UPDATE_DIALOG_FLASH_STATE)
+
+    # Force a redraw so the dialog updates even if the mouse is still.
+    try:
+        bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+    except Exception:
+        pass
+
+    return float(_I3D_UPDATE_DIALOG_FLASH_INTERVAL)
+
+
+def _ensure_update_dialog_flash_timer():
+    """Start the flashing timer once (per dialog lifetime)."""
+    global _I3D_UPDATE_DIALOG_TIMER_RUNNING
+
+    if _I3D_UPDATE_DIALOG_TIMER_RUNNING:
+        return
+
+    _I3D_UPDATE_DIALOG_TIMER_RUNNING = True
+    try:
+        bpy.app.timers.register(_update_dialog_flash_timer, first_interval=float(_I3D_UPDATE_DIALOG_FLASH_INTERVAL))
+    except Exception:
+        _I3D_UPDATE_DIALOG_TIMER_RUNNING = False
+
+
+
 def _sanitize_url(url: str) -> str:
     """Best-effort cleanup for hosting/redirect quirks.
 
@@ -176,11 +318,11 @@ def _fetch_manifest_json_with_fallback(url_primary, url_fallback, timeout_second
 
 
 
-def _update_thread_main(manifest_url_primary, manifest_url_fallback, channel_key):
+def _update_thread_main(manifest_url_primary, channel_key, check_id):
     global _I3D_UPDATE_RESULT, _I3D_UPDATE_ERROR
 
     try:
-        data = _fetch_manifest_json_with_fallback(manifest_url_primary, manifest_url_fallback, timeout_seconds=3.0)
+        data = _fetch_manifest_json(manifest_url_primary, timeout_seconds=3.0)
 
         channels = data.get("channels", {})
         ch = channels.get(channel_key)
@@ -212,6 +354,7 @@ def _update_thread_main(manifest_url_primary, manifest_url_fallback, channel_key
             notes = ch.get("notes_text")
 
         _I3D_UPDATE_RESULT = {
+            "_check_id": int(check_id),
             "channel": channel_key,
             "local_version": local_v,
             "remote_version": remote_v,
@@ -227,13 +370,14 @@ def _update_thread_main(manifest_url_primary, manifest_url_fallback, channel_key
     except Exception as e:
         _I3D_UPDATE_RESULT = None
         _I3D_UPDATE_ERROR = str(e)
+        global _I3D_UPDATE_ERROR_CHECK_ID
+        _I3D_UPDATE_ERROR_CHECK_ID = int(check_id)
         try:
             mod = importlib.import_module("io_export_i3d_reworked")
             name = getattr(mod, "bl_info", {}).get("name", "io_export_i3d_reworked")
         except Exception:
             name = "io_export_i3d_reworked"
         print(f"{name} Failed to check for updates")
-
 
 def _format_version(v):
     try:
@@ -289,10 +433,52 @@ class I3D_OT_CheckForUpdates(bpy.types.Operator):
     def execute(self, context):
         global _I3D_LAST_CHECK_WAS_MANUAL
         _I3D_LAST_CHECK_WAS_MANUAL = True
+        _begin_update_status_text(is_manual=True)
+        # Keep the info banner alive while the network fetch runs.
+        _invoke_op('i3d.update_check_progress')
         self.report({'INFO'}, 'Checking for updates...')
         start_update_check(force=True)
         return {'FINISHED'}
 
+
+
+class I3D_OT_UpdateCheckProgress(bpy.types.Operator):
+    bl_idname = "i3d.update_check_progress"
+    bl_label = "Update Check Progress"
+    bl_options = {'INTERNAL'}
+
+    _timer = None
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        try:
+            self._timer = wm.event_timer_add(1.0, window=context.window)
+        except Exception:
+            self._timer = None
+        wm.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        # Keep re-reporting so the banner doesn't disappear while the network fetch is still running.
+        if event.type == 'TIMER':
+            if not _I3D_UPDATE_STATUS_ACTIVE:
+                self.cancel(context)
+                return {'FINISHED'}
+            self.report({'INFO'}, 'Checking for updates...')
+
+        if not _I3D_UPDATE_STATUS_ACTIVE:
+            self.cancel(context)
+            return {'FINISHED'}
+        return {'PASS_THROUGH'}
+
+    def cancel(self, context):
+        wm = context.window_manager
+        if self._timer is not None:
+            try:
+                wm.event_timer_remove(self._timer)
+            except Exception:
+                pass
+            self._timer = None
 
 class I3D_OT_UpdateAvailableDialog(bpy.types.Operator):
     bl_idname = "i3d.update_available_dialog"
@@ -306,6 +492,12 @@ class I3D_OT_UpdateAvailableDialog(bpy.types.Operator):
             self._offer = dict(_I3D_UPDATE_OFFER or {})
         except Exception:
             self._offer = {}
+
+        # NOTE: Flashing UI in Blender popup dialogs is redraw-limited (often only updates on mouse move).
+        # Keep the rollback target styling solid instead of flashing.
+        global _I3D_UPDATE_DIALOG_ACTIVE
+        _I3D_UPDATE_DIALOG_ACTIVE = True
+
         return context.window_manager.invoke_props_dialog(self, width=560)
 
     def draw(self, context):
@@ -315,34 +507,51 @@ class I3D_OT_UpdateAvailableDialog(bpy.types.Operator):
         r = getattr(self, '_offer', None) or {}
         local_v = r.get("local_version", (0, 0, 0))
         remote_v = r.get("remote_version", (0, 0, 0))
-        channel = r.get("channel", "stable")
+        channel = str(getattr(prefs, "update_channel", "STABLE")).upper() if prefs else "STABLE"
 
         is_update = tuple(remote_v) > tuple(local_v)
         is_rollback = tuple(remote_v) < tuple(local_v)
 
+        installed_channel = str(getattr(prefs, 'update_installed_channel', 'STABLE')).upper() if prefs else 'STABLE'
+        selected_channel = channel
+        force_reinstall = (
+            (not is_update) and (not is_rollback)
+            and tuple(remote_v) == tuple(local_v)
+            and selected_channel in ('ALPHA', 'BETA')
+            and installed_channel in ('ALPHA', 'BETA')
+            and selected_channel != installed_channel
+        )
+
         # Header
         header = layout.box()
         header.alert = True
-        action_word = "Update" if is_update else ("Rollback" if is_rollback else "Install")
+        action_word = "Update" if is_update else ("Rollback" if is_rollback else ("Reinstall" if force_reinstall else "Install"))
         header.label(
             text=f"{_get_addon_display_name()}: {channel.upper()} {action_word} available!",
             icon='IMPORT'
         )
 
+        # Channel switch (ALPHA <-> BETA) reinstall prompt
+        if force_reinstall:
+            sw = layout.box()
+            sw.alert = True
+            sw.label(text=f"You are switching from {installed_channel.title()} to {selected_channel.title()}.", icon='INFO')
+            sw.label(text="Would you like to reinstall this add-on in case there are changes?", icon='QUESTION')
+
         # Version display (extra emphasis for rollbacks)
         if is_rollback:
             vbox = layout.box()
-            vbox.label(text="You are going BACK to an older version.", icon='ERROR')
+            vbox.label(text="🟨 You are going BACK to an older version.", icon='ERROR')
 
             current_row = vbox.row()
-            current_row.label(text=f"Current (installed): {_format_version(local_v)}", icon='CHECKMARK')
+            current_row.label(text=f"🟩 Current (installed): {_format_version(local_v)}", icon='CHECKMARK')
 
-            # Flash the rollback target by alternating alert state
-            flash_on = (int(time.time() * 2.0) % 2) == 0
+            # Rollback target: solid red (no flashing; popup redraws are often mouse-move driven)
             rb = vbox.box()
-            rb.alert = flash_on
-            rb_icon = 'ERROR' if flash_on else 'INFO'
-            rb.label(text=f"Rollback target: {_format_version(remote_v)}", icon=rb_icon)
+            rb.alert = True
+            rb_row = rb.row()
+            rb_row.alert = True
+            rb_row.label(text=f"Rollback target: {_format_version(remote_v)}", icon='ERROR')
         else:
             layout.label(text=f"Installed: {_format_version(local_v)}")
             layout.label(text=f"Latest:    {_format_version(remote_v)}")
@@ -371,15 +580,20 @@ class I3D_OT_UpdateAvailableDialog(bpy.types.Operator):
         layout.separator()
 
         # Primary actions
-        row = layout.row()
+        row = layout.row(align=True)
         row.scale_y = 1.2
 
         if is_rollback:
-            row.operator("i3d.perform_update", text="Rollback", icon='RECOVER_LAST')
+            left = row.row(align=True)
+            left.alert = True
+            left.operator("i3d.perform_update", text="Rollback", icon='RECOVER_LAST')
         elif is_update:
             row.operator("i3d.perform_update", text="Update", icon='FILE_REFRESH')
         else:
-            row.operator("i3d.perform_update", text="Install", icon='IMPORT')
+            if force_reinstall:
+                row.operator("i3d.perform_update", text="Reinstall", icon='FILE_REFRESH')
+            else:
+                row.operator("i3d.perform_update", text="Install", icon='IMPORT')
 
         op = row.operator("i3d.skip_update_version", text="Skip", icon='CANCEL')
         op.version_str = _format_version(remote_v)
@@ -404,7 +618,13 @@ class I3D_OT_UpdateAvailableDialog(bpy.types.Operator):
     
     def execute(self, context):
         # OK/Cancel just closes this dialog
+        global _I3D_UPDATE_DIALOG_ACTIVE
+        _I3D_UPDATE_DIALOG_ACTIVE = False
         return {'FINISHED'}
+
+    def cancel(self, context):
+        global _I3D_UPDATE_DIALOG_ACTIVE
+        _I3D_UPDATE_DIALOG_ACTIVE = False
 
 
 class I3D_OT_SkipUpdateVersion(bpy.types.Operator):
@@ -416,6 +636,7 @@ class I3D_OT_SkipUpdateVersion(bpy.types.Operator):
 
     def execute(self, context):
         prefs = _get_addon_prefs()
+        channel_pref = "STABLE"
         if prefs is not None:
             # Store skip per selected channel
             channel_pref = getattr(prefs, "update_channel", "STABLE")
@@ -429,6 +650,20 @@ class I3D_OT_SkipUpdateVersion(bpy.types.Operator):
                 bpy.ops.wm.save_userpref()
             except Exception:
                 pass
+
+        # Provide visible feedback in Blender's status bar.
+        try:
+            self.report({'INFO'}, f"Skipped version {self.version_str} for {channel_pref} channel.")
+        except Exception:
+            pass
+
+        # Clear the stored offer so follow-up redraws in this session don't keep advertising it.
+        try:
+            global _I3D_UPDATE_OFFER
+            _I3D_UPDATE_OFFER = None
+        except Exception:
+            pass
+
         return {'FINISHED'}
 
 
@@ -474,8 +709,18 @@ def _should_offer_update(result_dict, prefs):
         except Exception:
             pass
 
-    return tuple(remote_v) != tuple(local_v)
 
+    # Force a reinstall prompt when switching between ALPHA <-> BETA even if the version matches.
+    try:
+        selected_channel = str(getattr(prefs, 'update_channel', '')).upper()
+        installed_channel = str(getattr(prefs, 'update_installed_channel', 'STABLE')).upper()
+        if selected_channel in ('ALPHA', 'BETA') and installed_channel in ('ALPHA', 'BETA') and selected_channel != installed_channel:
+            if tuple(remote_v) == tuple(local_v):
+                return True
+    except Exception:
+        pass
+
+    return tuple(remote_v) != tuple(local_v)
 
 
 
@@ -551,8 +796,28 @@ def _poll_update_result_timer():
         return 0.25
 
     prefs = _get_addon_prefs()
+
+    # Thread finished: clear the persistent status text now.
+    _clear_update_status_text()
+
     if prefs is None:
         return None
+
+    # Ignore stale/late results (e.g. after a 30s UI timeout).
+    if _I3D_UPDATE_RESULT is not None:
+        try:
+            if int(_I3D_UPDATE_RESULT.get('_check_id', 0)) != int(_I3D_UPDATE_ACTIVE_CHECK_ID):
+                _I3D_UPDATE_RESULT = None
+        except Exception:
+            _I3D_UPDATE_RESULT = None
+
+    if _I3D_UPDATE_ERROR is not None:
+        try:
+            if int(_I3D_UPDATE_ERROR_CHECK_ID or 0) != int(_I3D_UPDATE_ACTIVE_CHECK_ID):
+                _I3D_UPDATE_ERROR = None
+        except Exception:
+            _I3D_UPDATE_ERROR = None
+
 
     # If we got a result and an install should be offered (upgrade OR rollback), show the update dialog.
     if _I3D_UPDATE_RESULT and _should_offer_update(_I3D_UPDATE_RESULT, prefs):
@@ -591,7 +856,6 @@ def _poll_update_result_timer():
 
     return None
 
-
 def start_update_check(force=False):
     """Kick off an update check in the background.
 
@@ -613,8 +877,7 @@ def start_update_check(force=False):
         return
 
     manifest_url_primary = getattr(prefs, "update_manifest_url", "").strip()
-    manifest_url_fallback = getattr(prefs, "update_manifest_url_fallback", "").strip()
-    if not manifest_url_primary and not manifest_url_fallback:
+    if not manifest_url_primary:
         return
 
     channel_key = _channel_key_from_pref(getattr(prefs, "update_channel", "STABLE"))
@@ -623,11 +886,20 @@ def start_update_check(force=False):
     if _I3D_UPDATE_THREAD is not None and _I3D_UPDATE_THREAD.is_alive():
         return
 
+
+    # Begin persistent status text so users can see we're still working (even if the network is slow).
+    _begin_update_status_text(is_manual=_I3D_LAST_CHECK_WAS_MANUAL)
+
+    global _I3D_UPDATE_NEXT_CHECK_ID, _I3D_UPDATE_ACTIVE_CHECK_ID
+    _I3D_UPDATE_NEXT_CHECK_ID += 1
+    check_id = int(_I3D_UPDATE_NEXT_CHECK_ID)
+    _I3D_UPDATE_ACTIVE_CHECK_ID = check_id
+
     _I3D_UPDATE_CHECKED_THIS_SESSION = True
 
     _I3D_UPDATE_THREAD = threading.Thread(
         target=_update_thread_main,
-        args=(manifest_url_primary, manifest_url_fallback, channel_key),
+        args=(manifest_url_primary, channel_key, check_id),
         daemon=True,
     )
     _I3D_UPDATE_THREAD.start()
@@ -637,7 +909,6 @@ def start_update_check(force=False):
         bpy.app.timers.register(_poll_update_result_timer, first_interval=0.25)
     except Exception:
         pass
-
 
 def _startup_timer():
     start_update_check(force=False)
@@ -744,6 +1015,13 @@ class I3D_OT_PerformUpdate(bpy.types.Operator):
                 except Exception:
                     pass
 
+                # Record which update channel the currently installed add-on build came from (used for ALPHA <-> BETA reinstall prompts).
+                try:
+                    prefs.update_installed_channel = str(getattr(prefs, 'update_channel', 'STABLE')).upper()
+                    bpy.ops.wm.save_userpref()
+                except Exception:
+                    pass
+
                 try:
                     bpy.ops.wm.save_userpref()
                 except Exception:
@@ -816,6 +1094,7 @@ def register():
     bpy.utils.register_class(I3D_OT_UpdateCheckInfoDialog)
     bpy.utils.register_class(I3D_OT_OpenURL)
     bpy.utils.register_class(I3D_OT_CheckForUpdates)
+    bpy.utils.register_class(I3D_OT_UpdateCheckProgress)
     bpy.utils.register_class(I3D_OT_UpdateAvailableDialog)
     bpy.utils.register_class(I3D_OT_SkipUpdateVersion)
     bpy.utils.register_class(I3D_OT_DisableUpdateChecks)
@@ -849,6 +1128,10 @@ def unregister():
         pass
     try:
         bpy.utils.unregister_class(I3D_OT_UpdateAvailableDialog)
+    except Exception:
+        pass
+    try:
+        bpy.utils.unregister_class(I3D_OT_UpdateCheckProgress)
     except Exception:
         pass
     try:
