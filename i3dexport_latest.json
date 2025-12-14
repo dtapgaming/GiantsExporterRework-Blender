@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "generated_utc": "2025-12-14T01:04:47Z",
+  "generated_utc": "2025-12-14T08:26:02Z",
   "channels": {
     "stable": {
       "version": [
         10,
         0,
-        1
+        12
       ],
       "min_blender": [
         4,
@@ -14,11 +14,11 @@
         0
       ],
       "download": {
-        "primary": "https://drive.usercontent.google.com/download?id=1mR8Mpwp8Jvkrz4ywfYO3CwlrdSWhczxI&export=download&confirm=t",
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.12/io_export_i3d_reworked.zip",
         "secondary": "https://i3dexportStable2.dtapgaming.com"
       },
-      "notes_url": "https://i3dexportStable1.dtapgaming.com",
-      "message": "Stable update available. Google Test"
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.12",
+      "message": "Stable build available."
     },
     "beta": {
       "version": [
