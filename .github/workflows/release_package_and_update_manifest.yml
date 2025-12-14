@@ -52,4 +52,4 @@ jobs:
           git config user.email "github-actions@github.com"
           git add i3dexport_latest.json
           git diff --cached --quiet || git commit -m "Update manifest for release"
-          git push
+          git push origin HEAD:main
