@@ -68,7 +68,7 @@ def _extract_manifest_message(release_body: str) -> str | None:
 
 
 def _extract_notes_from_release_body(release_body: str) -> list[str]:
-    """Extract patch notes (short bullet list) from the GitHub Release body.
+    """Extract patch notes (short list) from the GitHub Release body.
 
     Supported formats:
     1) Explicit block:
@@ -82,7 +82,7 @@ def _extract_notes_from_release_body(release_body: str) -> list[str]:
        or
          Change Log:
          - ...
-       (Also supports plain lines under those headings.)
+       (Now also supports plain non-bulleted lines under these headings.)
 
     3) Otherwise: collects bullet/numbered lines from anywhere in the body.
 
@@ -146,7 +146,7 @@ def _extract_notes_from_release_body(release_body: str) -> list[str]:
                 notes.append(m.group(1).strip())
                 continue
 
-            # NEW: allow plain text lines under the heading
+            # NEW: accept plain text lines under the heading
             notes.append(s)
 
         return notes
@@ -188,6 +188,7 @@ def _extract_notes_from_release_body(release_body: str) -> list[str]:
             notes.append(m.group(1).strip())
             continue
 
+    # Keep it short in the manifest.
     notes = [n for n in notes if n]
     return notes[:25]
 
@@ -250,6 +251,7 @@ def main() -> None:
     if extracted_notes:
         ch["notes"] = extracted_notes
     else:
+        # Keep what was already in the manifest (if any).
         if existing_notes is not None:
             ch["notes"] = existing_notes
 
