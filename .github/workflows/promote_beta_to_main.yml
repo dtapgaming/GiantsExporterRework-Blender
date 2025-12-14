@@ -1,0 +1,51 @@
+name: Promote Beta -> Main (Stable)
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Fetch beta
+        run: |
+          git fetch origin beta:refs/remotes/origin/beta
+
+      - name: Preserve main manifest (THIS is the one we keep)
+        run: |
+          if test -f i3dexport_latest.json; then
+            cp i3dexport_latest.json /tmp/i3dexport_latest.json
+            echo "Saved main manifest."
+          else
+            echo "No manifest on main to preserve."
+          fi
+
+      - name: Merge beta into main
+        run: |
+          git merge --no-ff origin/beta -m "Promote beta -> main"
+
+      - name: Restore main manifest (do not allow beta to overwrite)
+        run: |
+          if test -f /tmp/i3dexport_latest.json; then
+            cp /tmp/i3dexport_latest.json i3dexport_latest.json
+            git add i3dexport_latest.json
+            git diff --cached --quiet || git commit -m "Keep main manifest (do not overwrite during promotion)"
+          fi
+
+      - name: Push main
+        run: |
+          git push origin main
