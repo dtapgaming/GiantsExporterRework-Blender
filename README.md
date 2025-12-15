@@ -39,7 +39,7 @@ then close this window and all of the warnings will go away
 
 Change log
 ----------
-10.0.13 (15.12.2024)
+10.0.13 (15.12.2025)
 ------------------
 New: Built-in Update Checker (Stable/Beta/Alpha) 
 New: Prompts user at start up if there is an update available 
