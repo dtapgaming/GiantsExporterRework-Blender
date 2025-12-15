@@ -1,3 +1,6 @@
+* * * *If you want Updates without having to come to this page: __**Activate the Update checker**__ in the user preferences when you set your game path!
+
+
 *****IMPORTANT: 
 DO NOT DOWNLOAD FROM HERE <img width="604" height="111" alt="image" src="https://github.com/user-attachments/assets/50efcc9c-4248-47a9-99a9-af22115e1c42" />
 
