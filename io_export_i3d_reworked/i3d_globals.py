@@ -64,6 +64,10 @@ def I3DLogPerformance(text):
 
 import bpy
 
+# Tracks the last Update Channel selection (runtime) so ALPHA<->BETA switches
+# can be detected even if the saved 'update_channel_prev' marker is stale.
+_I3D_LAST_UPDATE_CHANNEL_VALUE = None
+
 # --------------------------------------------------------------
 # Online Access Guidance (Blender Preferences > Get Extensions)
 # --------------------------------------------------------------
@@ -213,6 +217,81 @@ class I3D_OT_GuideEnableOnlineAccess(bpy.types.Operator):
         return {'FINISHED'}
 
 
+
+def _i3d_on_update_channel_changed(self, context):
+    """Triggered when the Update Channel dropdown changes.
+
+    We only intercept ALPHA <-> BETA switches to force an explicit install prompt.
+    """
+    global _I3D_LAST_UPDATE_CHANNEL_VALUE
+
+    # If this change was triggered internally (e.g. revert), ignore.
+    try:
+        from .helpers import updateChecker as _i3d_updateChecker
+        if getattr(_i3d_updateChecker, "_I3D_CHANNEL_SWITCH_INTERNAL_SET", False):
+            try:
+                cur = str(getattr(self, "update_channel", "STABLE") or "STABLE").upper()
+                self.update_channel_prev = cur
+                _I3D_LAST_UPDATE_CHANNEL_VALUE = cur
+            except Exception:
+                pass
+            return
+    except Exception:
+        pass
+
+    new_channel = str(getattr(self, "update_channel", "STABLE") or "STABLE").upper()
+
+    # Determine the previous value as reliably as possible.
+    # IMPORTANT: Prefer the stored marker on the preferences object first, because the
+    # runtime tracker can be stale (e.g. on the first change after launching Blender).
+    old_channel = str(getattr(self, "update_channel_prev", "") or "").upper()
+    if old_channel not in ("STABLE", "BETA", "ALPHA") or old_channel == new_channel:
+        try:
+            if _I3D_LAST_UPDATE_CHANNEL_VALUE in ("STABLE", "BETA", "ALPHA") and _I3D_LAST_UPDATE_CHANNEL_VALUE != new_channel:
+                old_channel = _I3D_LAST_UPDATE_CHANNEL_VALUE
+        except Exception:
+            pass
+    # First-time init: if we still don't have a reliable previous value, set it and return.
+    if old_channel not in ("STABLE", "BETA", "ALPHA"):
+        try:
+            self.update_channel_prev = new_channel
+            _I3D_LAST_UPDATE_CHANNEL_VALUE = new_channel
+            bpy.ops.wm.save_userpref()
+        except Exception:
+            pass
+        return
+
+    # Only intercept ALPHA <-> BETA (no STABLE involvement).
+    if (old_channel in ("ALPHA", "BETA")) and (new_channel in ("ALPHA", "BETA")) and (new_channel != old_channel):
+        try:
+            from .helpers import updateChecker as _i3d_updateChecker
+            _i3d_updateChecker.request_alpha_beta_switch(old_channel=old_channel, new_channel=new_channel, context=context)
+        except Exception:
+            # If we cannot show the prompt, revert selection back to previous.
+            try:
+                from .helpers import updateChecker as _i3d_updateChecker
+                _i3d_updateChecker._set_update_channel_internal(self, old_channel)
+            except Exception:
+                try:
+                    self.update_channel = old_channel
+                except Exception:
+                    pass
+        finally:
+            # Do not advance the runtime tracker until the user commits or cancels the channel switch.
+            # The commit/cancel paths update this via internal-set or explicit assignment.
+            pass
+        return
+
+    # Non-intercepted changes: commit the "previous" marker.
+    try:
+        self.update_channel_prev = new_channel
+        _I3D_LAST_UPDATE_CHANNEL_VALUE = new_channel
+        bpy.ops.wm.save_userpref()
+    except Exception:
+        pass
+
+
+
 class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
     """Addon preferences for GIANTS I3D Exporter.
     Stores the global Farming Simulator installation directory."""
@@ -243,8 +322,19 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
             ("ALPHA", "Alpha", "Alpha/dev builds"),
         ],
         default="STABLE",
+        update=_i3d_on_update_channel_changed,
     )
 
+
+
+    # Internal: remembers the previously selected update channel in the UI.
+    # Used to detect ALPHA <-> BETA switches and prompt for a forced install even when the version matches.
+    update_channel_prev: bpy.props.StringProperty(
+        name="Previous Update Channel (Internal)",
+        description="Internal: previous value of the Update Channel dropdown",
+        default="STABLE",
+        options={'HIDDEN'},
+    )
     # Internal: remembers which update channel the currently installed add-on came from.
     # Used to force a reinstall prompt when switching between ALPHA <-> BETA even if the version number is identical.
     update_installed_channel: bpy.props.EnumProperty(
@@ -331,6 +421,111 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
 
         update_box = layout.box()
 
+        # While we are gathering build information for an ALPHA<->BETA channel switch,
+        # lock (grey out) the update controls so the user can't spam changes or fire
+        # overlapping queries.
+        channel_switch_busy = False
+        try:
+            from .helpers import updateChecker as _i3d_updateChecker
+            channel_switch_busy = bool(getattr(_i3d_updateChecker, "is_channel_switch_in_progress", lambda: False)())
+        except Exception:
+            channel_switch_busy = False
+        if channel_switch_busy:
+            # While gathering (or after gathering) channel switch build info, we lock the normal
+            # update controls and instead present a Commit/Cancel workflow directly in the prefs UI.
+            offer = {}
+            err = ""
+            ready = False
+            try:
+                from .helpers import updateChecker as _i3d_updateChecker
+                offer = dict(getattr(_i3d_updateChecker, "get_channel_switch_offer", lambda: {})() or {})
+                err = str(getattr(_i3d_updateChecker, "get_channel_switch_error", lambda: "")() or "")
+                ready = bool(getattr(_i3d_updateChecker, "is_channel_switch_ready", lambda: False)())
+            except Exception:
+                offer = {}
+                err = ""
+                ready = False
+
+            # Harden readiness detection: in some Blender contexts the helper
+            # "is_channel_switch_ready" can return False even though the offer
+            # payload is already populated (thread completed, offer contains
+            # download URL / remote version). Prefer the actual offer content.
+            if (not err) and isinstance(offer, dict) and offer.get("error"):
+                err = str(offer.get("error"))
+            if (not ready) and isinstance(offer, dict):
+                try:
+                    if (
+                        (offer.get("remote_version") is not None)
+                        or bool(offer.get("download_primary") or offer.get("download_secondary"))
+                        or bool(offer.get("notes") or offer.get("notes_url"))
+                        or bool(offer.get("message"))
+                        or bool(offer.get("error"))
+                    ):
+                        ready = True
+                except Exception:
+                    pass
+
+            if err:
+                busy_box = update_box.box()
+                busy_box.alert = True
+                busy_box.label(text="⚠ Channel switch failed while gathering build info.", icon='ERROR')
+                busy_box.label(text=str(err)[:220])
+                row = busy_box.row(align=True)
+                op = row.operator("i3d.channel_switch_cancel", text="OK (Revert)", icon='CANCEL')
+                op.old_channel = str(offer.get("old_channel", getattr(self, "update_channel_prev", "STABLE"))).upper()
+            elif not ready:
+                busy_box = update_box.box()
+                busy_box.label(text="Please wait while we get information on that Update Channel...", icon='TIME')
+                busy_box.label(text="Update controls are temporarily locked.", icon='LOCKED')
+
+                # Provide an explicit escape hatch so users can back out of a
+                # pending ALPHA<->BETA switch if the network is slow/unreachable.
+                row = busy_box.row(align=True)
+                row.scale_y = 1.15
+                op = row.operator("i3d.channel_switch_cancel", text="Cancel (Revert)", icon='CANCEL')
+                op.old_channel = str(offer.get("old_channel", getattr(self, "update_channel_prev", "STABLE"))).upper()
+            else:
+                # Build info ready: show Commit/Cancel UI (no popup).
+                old_ch = str(offer.get("old_channel", getattr(self, "update_channel_prev", "STABLE"))).upper()
+                new_ch = str(offer.get("new_channel", getattr(self, "update_channel", "STABLE"))).upper()
+
+                ready_box = update_box.box()
+                ready_box.alert = True
+                ready_box.label(text=f"Pending switch: {old_ch.title()} → {new_ch.title()}", icon='ERROR')
+                ready_box.label(text="To apply this change, you must install now and then quit Blender.", icon='INFO')
+
+                msg = offer.get("message")
+                if msg:
+                    ready_box.label(text=str(msg)[:240])
+
+                notes = offer.get("notes")
+                if notes:
+                    notes_lines = []
+                    try:
+                        notes_lines = [ln.strip() for ln in str(notes).replace("\r", "").split("\n") if ln.strip()]
+                    except Exception:
+                        notes_lines = []
+                    if notes_lines:
+                        nb = ready_box.box()
+                        nb.label(text="Patch Notes:", icon='TEXT')
+                        for ln in notes_lines[:12]:
+                            nb.label(text=ln[:140])
+                        if len(notes_lines) > 12:
+                            nb.label(text="(More in Release Notes)", icon='DOT')
+
+                if offer.get("notes_url"):
+                    row = ready_box.row()
+                    op = row.operator("i3d.open_url", text="Release Notes", icon='HELP')
+                    op.url = offer.get("notes_url")
+
+                btn = ready_box.row(align=True)
+                btn.scale_y = 1.2
+                c = btn.operator("i3d.channel_switch_commit", text=f"Commit {new_ch.title()} Install", icon='CHECKMARK')
+                c.old_channel = old_ch
+                c.new_channel = new_ch
+                x = btn.operator("i3d.channel_switch_cancel", text="Cancel (Revert)", icon='CANCEL')
+                x.old_channel = old_ch
+
         # Respect Blender's "Allow Online Access"
         online_access = True
         try:
@@ -339,10 +534,11 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
             online_access = True
 
         row = update_box.row()
+        row.enabled = (not channel_switch_busy)
         row.prop(self, "enable_update_checks")
 
         body = update_box.column()
-        body.enabled = bool(self.enable_update_checks)
+        body.enabled = bool(self.enable_update_checks) and (not channel_switch_busy)
 
         if bool(self.enable_update_checks) and not online_access:
             warn = body.box()
@@ -366,7 +562,7 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         url_col.prop(self, "update_manifest_url")
 
         row = body.row()
-        row.enabled = bool(online_access)
+        row.enabled = bool(online_access) and (not channel_switch_busy)
         row.operator("i3d.check_for_updates", text="Check Now", icon='FILE_REFRESH')
 
         # Show installed version
@@ -385,6 +581,28 @@ def register():
     bpy.utils.register_class(I3D_OT_EnableOnlineAccess)
     bpy.utils.register_class(I3D_OT_GuideEnableOnlineAccess)
     bpy.utils.register_class(I3DExporterAddonPreferences)
+
+    # Ensure the "previous channel" marker is synced on first run after installing this version.
+    try:
+        prefs = bpy.context.preferences.addons["io_export_i3d_reworked"].preferences
+        cur = str(getattr(prefs, "update_channel", "STABLE") or "STABLE").upper()
+
+        try:
+            global _I3D_LAST_UPDATE_CHANNEL_VALUE
+            _I3D_LAST_UPDATE_CHANNEL_VALUE = cur
+        except Exception:
+            pass
+        prev = str(getattr(prefs, "update_channel_prev", "") or "").upper()
+        if prev not in ("STABLE", "BETA", "ALPHA"):
+            prefs.update_channel_prev = cur
+        # If the add-on was already set to ALPHA/BETA before this marker existed, keep them in sync
+        # so the first ALPHA <-> BETA switch is detected correctly.
+        if cur in ("ALPHA", "BETA") and prefs.update_channel_prev == "STABLE":
+            prefs.update_channel_prev = cur
+        bpy.ops.wm.save_userpref()
+    except Exception:
+        pass
+
 
 def unregister():
     bpy.utils.unregister_class(I3DExporterAddonPreferences)
