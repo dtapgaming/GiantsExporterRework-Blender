@@ -8,8 +8,47 @@ https://docs.blender.org/manual/en/latest/editors/preferences/addons.html#rd-par
 
 Change log
 ----------
+10.0.13 (15.12.2024)
+------------------
 
-10.0.0 (21.11.2024)
+New: Built-in Update Checker (Stable/Beta/Alpha) 
+New: Prompts user at start up if there is an update available 
+New: allows user to set build type in user preferences (Stable/Beta/Alpha) 
+New: Logic to force (Beta/Alpha) channel Swapping because the version# between these will always be the same and update logic wouldn't allow swapping because version# was identical
+New: Manual update added to user pref menu 
+New: Activate online access (for all of blender) added to GUI if user has it disabled but enables updates in the User pref settings for this addon 
+*** *** *** Fixed: Shader Import Button *** *** *** 
+Tweak: Automatic Game-Relative Export Path Handling rework to handle shader export better
+Tweak: Delta → Vertex Color Tool Integration tools panel overhaul (now collapsible and in layout is better) 
+Tweak: MAJOR overhaul to the conflict detection and user prompt system now disables both addons at once if active to prevent needing to restart blender twice 
+
+V 10.0.12 (10.12.2025)
+------------------
+Renamed Folder and Installer from io_export_i3d_10_0_11 to io_export_i3d_reworked
+Added prompt that warns user that the official "Giants" exporter is active and both can not be active concurrently - ability to disable Giants Version and enable this one with single button
+Added a warning prompt on install, that Blender needs to start a new session for addon to work - quit, save and quit, and cancel button for responses
+Added a warning prompt on disable Giants Official exporter, that Blender needs to start a new session for addon to work - quit, save and quit, and cancel button for responses
+Added a check on every start of a new blender session to ensure user did not re-enable Giants Official exporter while this exporter is active - Only one may be active at a time.
+Full rebuild to the UV Mapping tool (previously named Vehicle Array Tool) Now Rebuilt and Optimized for Farming Simulator 25 No longer has FS22 Material properties
+Added a "Snow Heap Mode" - REQUIRED to be enabled if doing Snow Heap Exporting (Roof Snow that Piles Up)
+Built the Delta Vertex Color Tool Into this build - Original by Fuxna & Redphoenix
+major Overhaul to Delta Vertex Color Tool to allow it to work on Newer and Older Blenders
+Added prompt that warns user if the "Delta Vertex Color Tool" is active and both can not be active concurrently - ability to disable Fuxna & Redphoenix version and enable this one with single button
+Added a "Delta Vertex Info tab" in the Tools tab of the Giants Panel with Links to Youtube Videos and credits to Fuxna & Redphoenix and a button to show new users where to find the Data Tab
+Panel renamed to Giants I3D Exporter REWORKED
+
+V 10.0.11 (8.12.2025) Build: ALPHA1
+------------------
+- Updated reworked version for Farming Simulator 25 By DTAPGAMING 
+
+- Moved Game Installation Path browser into Preference addon menu - (this allows for a persistent game install location so you no longer have to select your install location every time you launch blender)
+- Reworked GUI to better fit new persistent game install location features - If you set the wrong folder just go into Blender > Edit > Preferences > Add-ons > Giants I3D Exporter Tools Reworked> at the bottom is your install Location!
+- Reworked Logic to allow all built-in tools to work with new persistent game install location - Just click the magnifying glass for shaders in material tab once you set the game install path it will work from then on out! 
+- Added Emission Nullifier Option (no longer need to drag the slider of emissions to black or deal with annoyances in Giants Editor if you forgot)
+- Removed the "Game relative" and "Relative" path options from export Tab and built real logic into back end, no longer needs a users input to properly route file paths.
+
+
+10.0.0 (21.11.2024) - GIANTS OFFICIAL (Current release)
 ------------------
 -Initial version for Farming Simulator 25
 
