@@ -1,5 +1,3 @@
-***KNOWN BUG Vehicle Shader Loading previously saved info back into the GUI doesnt work Working on a patch now**********
-
 *****IMPORTANT: 
 DO NOT DOWNLOAD FROM HERE <img width="604" height="111" alt="image" src="https://github.com/user-attachments/assets/50efcc9c-4248-47a9-99a9-af22115e1c42" />
 
@@ -38,7 +36,22 @@ then close this window and all of the warnings will go away
 
 Change log
 ----------
-V 10.0.1 (10.12.2025) Build: ALPHA2
+10.0.13 (15.12.2024)
+------------------
+New: Built-in Update Checker (Stable/Beta/Alpha) 
+New: Prompts user at start up if there is an update available 
+New: allows user to set build type in user preferences (Stable/Beta/Alpha) 
+New: Logic to force (Beta/Alpha) channel Swapping because the version# between these will always be the same and update logic wouldn't allow swapping because version# was identical
+New: Manual update added to user pref menu 
+New: Activate online access (for all of blender) added to GUI if user has it disabled but enables updates in the User pref settings for this addon 
+*** *** *** Fixed: Shader Import Button *** *** *** 
+Tweak: Automatic Game-Relative Export Path Handling rework to handle shader export better
+Tweak: Delta → Vertex Color Tool Integration tools panel overhaul (now collapsible and in layout is better) 
+Tweak: MAJOR overhaul to the conflict detection and user prompt system now disables both addons at once if active to prevent needing to restart blender twice 
+
+
+
+V 10.0.12 (10.12.2025)
 ------------------
 - Renamed Folder and Installer from io_export_i3d_10_0_11 to io_export_i3d_reworked
 - Added prompt that warns user that the official "Giants" exporter is active and both can not be active concurrently - ability to disable Giants Version and enable this one with single button
@@ -54,18 +67,14 @@ V 10.0.1 (10.12.2025) Build: ALPHA2
 - Panel renamed to Giants I3D Exporter REWORKED
 - 
 
-V 10.0.1 (8.12.2025) Build: ALPHA1
+V 10.0.11 (8.12.2025)
 ------------------
 - Updated reworked version for Farming Simulator 25 By DTAPGAMING 
 
 - Moved Game Installation Path browser into Preference addon menu - (this allows for a persistent game install location so you no longer have to select your install location every time you launch blender)
 - Reworked GUI to better fit new persistent game install location features - If you set the wrong folder just go into Blender > Edit > Preferences > Add-ons > Giants I3D Exporter Tools Reworked> at the bottom is your install Location!
 - Reworked Logic to allow all built-in tools to work with new persistent game install location - Just click the magnifying glass for shaders in material tab once you set the game install path it will work from then on out! 
-<img width="458" height="241" alt="image" src="https://github.com/user-attachments/assets/131d6c50-f2b5-42f6-a3ca-59e0e2ba7ea7" />
-
 You will need the game install location set to use the Material Templates as well 
-<img width="458" height="241" alt="image" src="https://github.com/user-attachments/assets/e2e60ae8-67b6-4b54-80f7-a1ab20f899ae" />
-
 - Added Emission Nullifier Option (no longer need to drag the slider of emissions to black or deal with annoyances in Giants Editor if you forgot) 
 <img width="436" height="120" alt="image" src="https://github.com/user-attachments/assets/ea55136b-bdc4-4ec8-b56a-3a5471a01124" />
 
