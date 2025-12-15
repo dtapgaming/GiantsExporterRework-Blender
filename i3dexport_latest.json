@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_utc": "2025-12-15T07:15:56Z",
+  "generated_utc": "2025-12-15T07:18:03Z",
   "channels": {
     "stable": {
       "version": [
@@ -36,7 +36,7 @@
       "version": [
         10,
         0,
-        12
+        14
       ],
       "min_blender": [
         4,
@@ -44,14 +44,13 @@
         0
       ],
       "download": {
-        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.12.BETA2.1/io_export_i3d_reworked.zip"
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.14.BETA1/io_export_i3d_reworked.zip"
       },
       "notes": [
-        "Testing - Added added (if alpha switch beta and version name = same still prompt update",
-        "Testing - Added The \u201cChecking for updates\u2026\u201d toast stays alive till prompt executes fail or success (manual checks)",
-        "ALPHA BUILD"
+        "Version Update Push Alpha and Beta to 10.0.14",
+        "As of now this is the same as 10.0.13"
       ],
-      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.12.BETA2.1",
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.14.BETA1",
       "message": "Beta build available. Github Test"
     },
     "alpha": {
