@@ -30,7 +30,7 @@
         "Tweak: MAJOR overhaul to the conflict detection and user prompt system now disables both addons at once if active to prevent needing to restart blender twice"
       ],
       "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.13",
-      "message": "Stable build available."
+      "message": "A New Stable build Is Available."
     },
     "beta": {
       "version": [
@@ -51,7 +51,7 @@
         "As of now this is the same as 10.0.13"
       ],
       "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.14.BETA1",
-      "message": "Beta build available. Github Test"
+      "message": "A New Beta Build Is Available."
     },
     "alpha": {
       "version": [
@@ -72,7 +72,7 @@
         "As of now this is the same as 10.0.13"
       ],
       "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.14.ALPHA1",
-      "message": "Alpha build available. Dtapgaming Test"
+      "message": "A New Alpha Build Is Available. I do not suggest being in ALPHA."
     }
   }
 }
