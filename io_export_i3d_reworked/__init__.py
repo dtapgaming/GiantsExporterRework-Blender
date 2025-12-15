@@ -22,7 +22,7 @@ bl_info = {
     "name": "GIANTS I3D Exporter Tools Reworked",
     "author": "GIANTS Software | Dtap Gaming",
     "blender": (4, 3, 0),
-    "version": (10, 0, 11),
+    "version": (10, 0, 13),
     "location": "GIANTS I3D",
     "description": "GIANTS Utilities and Exporter Reworked for Blender 4.3+",
     "warning": "Designed for Blender 4.3 and above.",

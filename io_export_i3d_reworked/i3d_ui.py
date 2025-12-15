@@ -45,6 +45,18 @@ from .tools import *
 
 # --- Add-on conflict detection (GIANTS official exporter / original Delta->Vertex tool) ---
 _I3D_CONFLICT_POPUP_SHOWN = False
+_I3D_RESTART_REQUIRED_POPUP_SHOWN = False
+
+
+def _i3d_get_addon_prefs():
+    """Safe helper to fetch this add-on's preferences (may be None during startup)."""
+    try:
+        addon_entry = bpy.context.preferences.addons.get("io_export_i3d_reworked")
+        if addon_entry is None:
+            return None
+        return addon_entry.preferences
+    except Exception:
+        return None
 
 _I3D_ABORT_PENDING = False
 _I3D_ABORT_SAVE_PREFS = False
@@ -291,6 +303,69 @@ class I3D_OT_AddonConflictDialog(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class I3D_OT_RestartRequiredDialog(bpy.types.Operator):
+    bl_idname = "i3d.restart_required_dialog"
+    bl_label = "Restart Required"
+    bl_options = {'INTERNAL'}
+
+    def invoke(self, context, event):
+        global _I3D_RESTART_REQUIRED_POPUP_SHOWN
+        _I3D_RESTART_REQUIRED_POPUP_SHOWN = True
+        return context.window_manager.invoke_props_dialog(self, width=520)
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.label(text="Restart Required", icon='INFO')
+        layout.label(text="This add-on needs a new Blender session to fully initialize UI panels.")
+        layout.separator()
+
+        row = layout.row()
+        row.scale_y = 1.2
+        # NOTE: Keep icons conservative here. Invalid icon IDs can cause the entire dialog body
+        # to stop drawing (resulting in a blank dialog).
+        row.operator("i3d.restart_save_and_quit", text="Save & Quit")
+        row.operator("i3d.restart_quit", text="Quit")
+
+        warning_box = layout.box()
+        warning_box.alert = True
+        wrow = warning_box.row()
+        wrow.label(text="WARNING: Use the buttons above.", icon='ERROR')
+        wrow = warning_box.row()
+        wrow.label(text="OK/Cancel only closes this dialog.")
+        wrow = warning_box.row()
+        wrow.label(text="Panels may not work until you quit and relaunch Blender.")
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+
+class I3D_OT_RestartSaveAndQuit(bpy.types.Operator):
+    bl_idname = "i3d.restart_save_and_quit"
+    bl_label = "Save & Quit"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        try:
+            _i3d_safe_quit()
+        except Exception as e:
+            print(f"Unable to safely quit Blender: {e}")
+        return {'FINISHED'}
+
+
+class I3D_OT_RestartQuit(bpy.types.Operator):
+    bl_idname = "i3d.restart_quit"
+    bl_label = "Quit"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        try:
+            bpy.ops.wm.quit_blender()
+        except Exception as e:
+            print(f"Unable to quit Blender: {e}")
+        return {'FINISHED'}
+
+
 class I3D_OT_ResolveAddonConflicts(bpy.types.Operator):
     bl_idname = "i3d.resolve_addon_conflicts"
     bl_label = "Resolve Add-on Conflicts"
@@ -426,10 +501,57 @@ def _i3d_conflict_check_timer():
 
     conflicts = _i3d_get_enabled_conflicts()
     if conflicts:
+        _I3D_CONFLICT_POPUP_SHOWN = True
         try:
             bpy.ops.i3d.addon_conflict_dialog('INVOKE_DEFAULT')
         except Exception as e:
             print(f"Unable to show conflict dialog: {e}")
+    return None
+
+
+def _i3d_restart_required_check_timer():
+    """Show a one-time restart-required dialog on first enable / after update.
+
+    This is needed because some panels/handlers in this legacy add-on only fully
+    initialize on a new Blender session.
+    """
+    global _I3D_RESTART_REQUIRED_POPUP_SHOWN
+
+    if _I3D_RESTART_REQUIRED_POPUP_SHOWN:
+        return None
+
+    # If conflicts exist, the conflict dialog already instructs the user to quit.
+    if _i3d_get_enabled_conflicts():
+        return None
+
+    prefs = _i3d_get_addon_prefs()
+    if prefs is None:
+        return 0.25
+
+    # If the preference marker doesn't exist (older configs), just skip.
+    if not hasattr(prefs, "initialized_version"):
+        return None
+
+    # Compute current version string from bl_info
+    try:
+        import importlib
+        mod = importlib.import_module("io_export_i3d_reworked")
+        v = mod.bl_info.get("version", (0, 0, 0))
+        current_version = f"{int(v[0])}.{int(v[1])}.{int(v[2])}"
+    except Exception:
+        current_version = ""
+
+    # Already initialized for this version -> no restart prompt.
+    if getattr(prefs, "initialized_version", "") == current_version:
+        return None
+
+    try:
+        bpy.ops.i3d.restart_required_dialog('INVOKE_DEFAULT')
+        _I3D_RESTART_REQUIRED_POPUP_SHOWN = True
+        prefs.initialized_version = current_version
+    except Exception as e:
+        print(f"Unable to show restart-required dialog: {e}")
+
     return None
 
 # --- Delta Bake Flash Logic ---
@@ -4188,6 +4310,9 @@ def register():
     bpy.utils.register_class( I3D_OT_QuitFromConflictDialog )
     bpy.utils.register_class( I3D_OT_ConfirmQuitWithoutDisablingConflicts )
     bpy.utils.register_class( I3D_OT_AddonConflictDialog )
+    bpy.utils.register_class( I3D_OT_RestartRequiredDialog )
+    bpy.utils.register_class( I3D_OT_RestartSaveAndQuit )
+    bpy.utils.register_class( I3D_OT_RestartQuit )
     bpy.utils.register_class( I3D_OT_ResolveAddonConflicts )
     bpy.utils.register_class( I3D_OT_AbortInstallation )
     bpy.utils.register_class( I3D_UIexportSettings )
@@ -4207,6 +4332,7 @@ def register():
             print(f"Error: unable to register class {cls}: {e}")
     # --------------------------Tools-------------------------------------------
     bpy.app.timers.register(_i3d_conflict_check_timer, first_interval=0.25)
+    bpy.app.timers.register(_i3d_restart_required_check_timer, first_interval=0.45)
 
     registerTools()
     # --------------------------Handler-------------------------------------------
@@ -4237,6 +4363,9 @@ def unregister():
     bpy.utils.unregister_class( I3D_OT_AlignYAxis )
     bpy.utils.unregister_class( I3D_OT_AbortInstallation )
     bpy.utils.unregister_class( I3D_OT_ResolveAddonConflicts )
+    bpy.utils.unregister_class( I3D_OT_RestartQuit )
+    bpy.utils.unregister_class( I3D_OT_RestartSaveAndQuit )
+    bpy.utils.unregister_class( I3D_OT_RestartRequiredDialog )
     bpy.utils.unregister_class( I3D_OT_AddonConflictDialog )
     bpy.utils.unregister_class( I3D_OT_ConfirmQuitWithoutDisablingConflicts )
     bpy.utils.unregister_class( I3D_OT_QuitFromConflictDialog )
