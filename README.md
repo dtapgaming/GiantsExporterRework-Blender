@@ -40,18 +40,17 @@ then close this window and all of the warnings will go away
 Change log
 ----------
 10.0.13 (15.12.2025)
-------------------
-New: Built-in Update Checker (Stable/Beta/Alpha) 
-New: Prompts user at start up if there is an update available 
-New: allows user to set build type in user preferences (Stable/Beta/Alpha) 
-New: Logic to force (Beta/Alpha) channel Swapping because the version# between these will always be the same and update logic wouldn't allow swapping because version# was identical
-New: Manual update added to user pref menu 
-New: Activate online access (for all of blender) added to GUI if user has it disabled but enables updates in the User pref settings for this addon 
-*** *** *** Fixed: Shader Import Button *** *** *** 
-Tweak: Automatic Game-Relative Export Path Handling rework to handle shader export better
-Tweak: Delta → Vertex Color Tool Integration tools panel overhaul (now collapsible and in layout is better) 
-Tweak: MAJOR overhaul to the conflict detection and user prompt system now disables both addons at once if active to prevent needing to restart blender twice 
-
+-----------------
+- New: Built-in Update Checker (Stable/Beta/Alpha)
+- New: Prompts user at start up if there is an update available
+- New: allows user to set build type in user preferences (Stable/Beta/Alpha)
+- New: Logic to force (Beta/Alpha) channel Swapping because the version# between these will always be the same and update logic wouldn't allow swapping because version# was identical
+- New: Manual update added to user pref menu
+- New: Activate online access (for all of blender) added to GUI if user has it disabled but enables updates in the User pref settings for this addon
+- Fixed: Shader Import Button
+- Tweak: Automatic Game-Relative Export Path Handling rework to handle shader export better
+- Tweak: Delta → Vertex Color Tool Integration tools panel overhaul (now collapsible and in layout is better)
+- Tweak: MAJOR overhaul to the conflict detection and user prompt system now disables both addons at once if active to prevent needing to restart blender twice
 
 
 V 10.0.12 (10.12.2025)
