@@ -47,7 +47,7 @@ Change log
 - New: Logic to force (Beta/Alpha) channel Swapping because the version# between these will always be the same and update logic wouldn't allow swapping because version# was identical
 - New: Manual update added to user pref menu
 - New: Activate online access (for all of blender) added to GUI if user has it disabled but enables updates in the User pref settings for this addon
-- Fixed: Shader Import Button
+- Fixed: Shader LOAD Button - Now reloads all values of the previously applied custom attributes
 - Tweak: Automatic Game-Relative Export Path Handling rework to handle shader export better
 - Tweak: Delta → Vertex Color Tool Integration tools panel overhaul (now collapsible and in layout is better)
 - Tweak: MAJOR overhaul to the conflict detection and user prompt system now disables both addons at once if active to prevent needing to restart blender twice
