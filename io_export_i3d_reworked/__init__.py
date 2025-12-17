@@ -19,16 +19,16 @@
 print(__file__)
 
 bl_info = {
-    "name": "GIANTS I3D Exporter Tools Reworked",
-    "author": "GIANTS Software | Dtap Gaming",
-    "blender": (4, 3, 0),
-    "version": (10, 0, 14),
+    "name": "GIANTS I3D Exporter REWORKED",
+    "author": "GIANTS Software",
+    "blender": ( 4, 0, 0 ),
+    "version": ( 10, 0, 14, 0 ),
     "location": "GIANTS I3D",
-    "description": "GIANTS Utilities and Exporter Reworked for Blender 4.3+",
-    "warning": "Designed for Blender 4.3 and above.",
+    "description": "GIANTS Utilities and Exporter",
+    "warning": "",
     "wiki_url": "http://gdn.giants-software.com",
-    "tracker_url": "https://discord.gg/NazY3trnnm",
-    "category": "Game Engine",}
+    "tracker_url": "http://gdn.giants-software.com",
+    "category": "Game Engine"}
 
 global DCC_PLATFORM
 DCC_PLATFORM = "blender"
@@ -39,6 +39,10 @@ if "bpy" in locals():
     importlib.reload(dcc)
     importlib.reload(i3d_export)
     importlib.reload(i3d_globals)
+    try:
+        importlib.reload(updateChecker)
+    except Exception:
+        pass
 else:
     from . import i3d_ui
     from . import dcc
