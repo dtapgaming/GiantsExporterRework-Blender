@@ -20,15 +20,15 @@ print(__file__)
 
 bl_info = {
     "name": "GIANTS I3D Exporter REWORKED",
-    "author": "GIANTS Software",
-    "blender": ( 4, 0, 0 ),
+    "author": "GIANTS Software | Dtap Gaming",
+    "blender": (4, 3, 0),
     "version": ( 10, 0, 14 ),
     "location": "GIANTS I3D",
-    "description": "GIANTS Utilities and Exporter",
-    "warning": "",
+    "description": "GIANTS Utilities and Exporter Reworked for Blender 4.3+",
+    "warning": "Designed for Blender 4.3 and above.",
     "wiki_url": "http://gdn.giants-software.com",
-    "tracker_url": "http://gdn.giants-software.com",
-    "category": "Game Engine"}
+    "tracker_url": "https://discord.gg/NazY3trnnm",
+    "category": "Game Engine",}
 
 global DCC_PLATFORM
 DCC_PLATFORM = "blender"
