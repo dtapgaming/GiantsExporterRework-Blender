@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_utc": "2025-12-15T07:54:32Z",
+  "generated_utc": "2025-12-17T16:30:50Z",
   "channels": {
     "stable": {
       "version": [
@@ -65,13 +65,13 @@
         0
       ],
       "download": {
-        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.14.ALPHA1/io_export_i3d_reworked.zip"
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.14.ALPHA2/io_export_i3d_reworked.zip"
       },
       "notes": [
         "Version Update Push Alpha and Beta to 10.0.14",
         "As of now this is the same as 10.0.13"
       ],
-      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.14.ALPHA1",
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.14.ALPHA2",
       "message": "A New Alpha Build Is Available. I do not suggest being in ALPHA."
     }
   }
