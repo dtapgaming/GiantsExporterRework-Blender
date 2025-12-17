@@ -22,7 +22,7 @@ bl_info = {
     "name": "GIANTS I3D Exporter REWORKED",
     "author": "GIANTS Software",
     "blender": ( 4, 0, 0 ),
-    "version": ( 10, 0, 0 ),
+    "version": ( 10, 0, 14 ),
     "location": "GIANTS I3D",
     "description": "GIANTS Utilities and Exporter",
     "warning": "",
