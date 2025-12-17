@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_utc": "2025-12-17T16:47:42Z",
+  "generated_utc": "2025-12-17T16:47:49Z",
   "channels": {
     "stable": {
       "version": [
@@ -29,7 +29,7 @@
       "version": [
         10,
         0,
-        14
+        15
       ],
       "min_blender": [
         4,
@@ -37,13 +37,12 @@
         0
       ],
       "download": {
-        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.14.BETA1/io_export_i3d_reworked.zip"
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.15.BETA0/io_export_i3d_reworked.zip"
       },
       "notes": [
-        "Version Update Push Alpha and Beta to 10.0.14",
-        "As of now this is the same as 10.0.13"
+        "Same as 10.0.14 (Stable Release) ( Start Beta Build 0 )"
       ],
-      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.14.BETA1",
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.15.BETA0",
       "message": "A New Beta Build Is Available."
     },
     "alpha": {
