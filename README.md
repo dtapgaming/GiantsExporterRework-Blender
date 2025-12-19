@@ -39,7 +39,7 @@ then close this window and all of the warnings will go away
 
 Change log
 ----------
-10.0.14 (16.12.2025)
+10.0.14 (17.12.2025)
 -----------------
 -Fixed Backend issue caused by "forced (Beta/Alpha) channel Swapping", removed this feature, You can still select the channel you wish to use but each channel will now have a different version Number instead.
 
