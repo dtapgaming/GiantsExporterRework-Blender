@@ -41,7 +41,7 @@ Change log
 ----------
 10.0.14 (16.12.2025)
 -----------------
--Fixed Backend issue caused by forced (Beta/Alpha) channel Swapping removed this feature You can still select the channel you wish to use but each channel will now have a different version Number instead.
+-Fixed Backend issue caused by "forced (Beta/Alpha) channel Swapping", removed this feature, You can still select the channel you wish to use but each channel will now have a different version Number instead.
 
 10.0.13 (15.12.2025)
 -----------------
