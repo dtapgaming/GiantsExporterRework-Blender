@@ -39,6 +39,16 @@ then close this window and all of the warnings will go away
 
 Change log
 ----------
+
+10.0.16 (22.12.2025)
+-----------------
+- Fixed Issue where error could occur if user selected the actual full collection in scene graph
+- Fixed drawing issue for the material Template tool (assign vehicle shader materials preassigned from Giants)
+
+10.0.15 (21.12.2025)
+-----------------
+- Fixed UV Mapping Tool - Now shows the new FS25 Version Again
+
 10.0.14 (17.12.2025)
 -----------------
 -Fixed Backend issue caused by "forced (Beta/Alpha) channel Swapping", removed this feature, You can still select the channel you wish to use but each channel will now have a different version Number instead.
@@ -88,3 +98,9 @@ You will need the game install location set to use the Material Templates as wel
 
 
 Please Note: This is an Alpha Build so there will probably be bugs and maybe even some base features that broke I pre-alpha tested a lot of the features but I haven't tested everything like vertex painting and more complex things as I should have changed anything that broke those (in theory)
+
+
+V 10.0.10 (5.10.2025)
+------------------
+- Initial Release Making the exporter work in Blender 4.4+
+This build is PRE ALPHA (Very Buggy)
