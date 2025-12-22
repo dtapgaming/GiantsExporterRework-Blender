@@ -19,10 +19,10 @@
 print(__file__)
 
 bl_info = {
-    "name": "GIANTS I3D Exporter Tools Reworked",
+    "name": "GIANTS I3D Exporter REWORKED",
     "author": "GIANTS Software | Dtap Gaming",
     "blender": (4, 3, 0),
-    "version": (10, 0, 14),
+    "version": ( 10, 0, 16 ),
     "location": "GIANTS I3D",
     "description": "GIANTS Utilities and Exporter Reworked for Blender 4.3+",
     "warning": "Designed for Blender 4.3 and above.",
@@ -39,6 +39,10 @@ if "bpy" in locals():
     importlib.reload(dcc)
     importlib.reload(i3d_export)
     importlib.reload(i3d_globals)
+    try:
+        importlib.reload(updateChecker)
+    except Exception:
+        pass
 else:
     from . import i3d_ui
     from . import dcc
