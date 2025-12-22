@@ -26,13 +26,14 @@ import platform
 import os.path
 import re
 import addon_utils
+import bpy.utils.previews
 from os import listdir
 from os.path import isfile, join
 from . import i3d_export
 from . import i3d_changelog
 from . import dcc as dcc
 from .util import i3d_directoryFinderUtil as dirf
-from .helpers.pathHelper import getGamePath
+from .helpers.pathHelper import getGamePath, resolveGiantsPath
 from .util import logUtil, pathUtil, stringUtil, selectionUtil, i3d_shaderUtil
 from .dcc import UINT_MAX_AS_STRING, dccBlender, g_colMaskFlags, g_collisionBitmaskAttributes, TYPE_BOOL, TYPE_INT, TYPE_FLOAT, TYPE_ENUM, TYPE_STRING, TYPE_STRING_UINT
 
@@ -516,7 +517,7 @@ def extractXMLShaderData():
     gamePath = getGamePath()
     if gamePath is None or gamePath == "":
         gamePath = bpy.context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay
-    dirPath = bpy.context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation.replace("$", gamePath)
+    dirPath = resolveGiantsPath(bpy.context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation, gamePath)
     #dirPath = bpy.path.abspath(dirPath)
     fileName = bpy.context.scene.I3D_UIexportSettings.i3D_shaderEnum
 
@@ -2447,7 +2448,7 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
         gamePath = getGamePath()
         if gamePath is None or gamePath == "":
             gamePath = bpy.context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay
-        dirPath = bpy.context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation.replace("$", gamePath)
+        dirPath = resolveGiantsPath(bpy.context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation, gamePath)
         dirPath = os.path.abspath(dirPath)
         # print(dirPath)
         try:
@@ -2885,8 +2886,10 @@ class I3D_OT_modal_active_object(bpy.types.Operator):
 
         activeObject = None
         objects = selectionUtil.getSelectedObjects(context)
-        if len(objects) > 0:
-            activeObject = objects[0]
+        for obj in objects:
+            if isinstance(obj, bpy.types.Object):
+                activeObject = obj
+                break
 
         if context.scene.I3D_UIexportSettings.UI_autoAssign:
             if activeObject is not None:
@@ -2917,7 +2920,7 @@ class I3D_OT_modal_active_object(bpy.types.Operator):
                                 dcc.I3DSaveObjectAttributes()
 
         # Update selected material
-        activeMat = activeObject.active_material if activeObject is not None else None
+        activeMat = getattr(activeObject, "active_material", None) if activeObject is not None else None
         new_mat = activeMat.name if activeMat is not None else "None"
 
         if context.scene.I3D_UIexportSettings.i3D_selectedMaterialEnum != new_mat:
@@ -3251,7 +3254,7 @@ class I3D_OT_PanelAddShader_ButtonAdd( bpy.types.Operator):
             gamePath = getGamePath()
             if gamePath is None or gamePath == "":
                 gamePath = bpy.context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay
-            dirPath = dirPath.replace("$", gamePath)
+            dirPath = resolveGiantsPath(dirPath, gamePath)
             fileName = context.scene.I3D_UIexportSettings.i3D_shaderEnum
             if fileName == "None":
                 self.report({'WARNING'},'No config xml file set!')
@@ -3679,7 +3682,11 @@ class I3D_OT_PanelMaterial_OpenMaterialTemplatesWindowButton(bpy.types.Operator)
                     if not gameInstallationPath:
                         self.report({'WARNING'},"FS25 Game Path is empty (Addon Preferences)")
                         return {'CANCELLED'}
-                    templatesXmlFilename = materialTemplateFilename.replace("$", gameInstallationPath)
+                    templatesXmlFilename = resolveGiantsPath(materialTemplateFilename, gameInstallationPath)
+                    if not os.path.exists(templatesXmlFilename):
+                        self.report({'ERROR'}, f"Material Templates XML not found: {templatesXmlFilename}")
+                        self.report({'ERROR'}, f"FS25 Game Path resolved to: {gameInstallationPath}")
+                        return {'CANCELLED'}
                     xmlTree = xml_ET.parse(templatesXmlFilename)
                 except xml_ET.ParseError as err:
                     self.report({"INFO"}, "Failed to load parameter templates from '%s': %s" % (templatesXmlFilename, err))
@@ -3690,9 +3697,9 @@ class I3D_OT_PanelMaterial_OpenMaterialTemplatesWindowButton(bpy.types.Operator)
                     templatesFileRoot = xmlTree.getroot()
                     for template in templatesFileRoot.findall("template"):
                         iconFilename = template.get("iconFilename")
-                        iconFilenamePath = iconFilename.replace("$", gameInstallationPath)
+                        iconFilenamePath = resolveGiantsPath(iconFilename, gameInstallationPath)
                         name = template.get("name")
-                        categoryString = template.get("category")
+                        categoryString = template.get("category") or "Uncategorized"
                         categories = categoryString.split("/")
 
                         templateAttributesDict = {}
@@ -3718,12 +3725,22 @@ class I3D_OT_PanelMaterial_OpenMaterialTemplatesWindowButton(bpy.types.Operator)
 
                         g_loadedMaterialTemplates['templates'][name] = templateAttributesDict
                         if name not in categoryDict["thumbnails"]:
-                            categoryDict["thumbnails"].load(name, iconFilenamePath, "IMAGE")
+                            try:
+                                if iconFilenamePath and os.path.exists(iconFilenamePath):
+                                    categoryDict["thumbnails"].load(name, iconFilenamePath, "IMAGE")
+                            except Exception:
+                                pass
 
                 bpy.utils.register_class(I3D_PT_MaterialTemplates)
                 self.state = 1
             except Exception as e:
-                self.report({'INFO'}, 'I3D_OT_PanelMaterial_OpenMaterialTemplatesWindowButton::execute::cancelled1')
+                import traceback
+                print(traceback.format_exc())
+                self.report({'ERROR'}, f"I3D_OT_PanelMaterial_OpenMaterialTemplatesWindowButton::execute exception: {e}")
+                try:
+                    self.report({'ERROR'}, f"Templates XML attempted: {templatesXmlFilename}")
+                except Exception:
+                    pass
                 return {'CANCELLED'}
         elif self.state == 1:
             #TODO(jdellsperger): Should we unload everything (including thumbnails) in case of close?
