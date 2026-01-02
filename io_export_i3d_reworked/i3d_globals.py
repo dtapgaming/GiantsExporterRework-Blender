@@ -143,6 +143,48 @@ def _i3d_prefs_on_update(self, context):
     _i3d_prefs_save_from_prefs(self)
 
 
+
+class I3D_OT_EnableOnlineAccess(bpy.types.Operator):
+    """Enable Blender's System > Network > Allow Online Access"""
+
+    bl_idname = "i3d.enable_online_access"
+    bl_label = "Enable Online Access"
+    bl_description = "Turn on Blender's System > Network > Allow Online Access"
+
+    def execute(self, context):
+        prefs = bpy.context.preferences
+        ok = False
+
+        try:
+            # Blender 4/5 style
+            if hasattr(prefs.system, "use_online_access"):
+                prefs.system.use_online_access = True
+                ok = True
+            # Older/newer variants
+            elif hasattr(prefs.system, "network") and hasattr(prefs.system.network, "use_online_access"):
+                prefs.system.network.use_online_access = True
+                ok = True
+        except Exception as e:
+            self.report({'WARNING'}, "Failed to enable online access: {}".format(e))
+            return {'CANCELLED'}
+
+        if ok:
+            # Force UI refresh
+            try:
+                wm = context.window_manager
+                if wm is not None:
+                    for win in wm.windows:
+                        for area in win.screen.areas:
+                            area.tag_redraw()
+            except Exception:
+                pass
+
+            self.report({'INFO'}, "Blender 'Allow Online Access' enabled.")
+            return {'FINISHED'}
+
+        self.report({'WARNING'}, "Could not locate Blender online access preference.")
+        return {'CANCELLED'}
+
 class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
     """Addon preferences for GIANTS I3D Exporter.
     Stores the global Farming Simulator installation directory."""
@@ -275,6 +317,7 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
             warn = body.box()
             warn.alert = True
             warn.label(text="Blender 'Allow Online Access' is OFF. Update checks are blocked.", icon='ERROR')
+            warn.operator("i3d.enable_online_access", text="Enable Online Access", icon='INTERNET')
 
         body.prop(self, "update_channel")
 
@@ -300,6 +343,7 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
 
 
 def register():
+    bpy.utils.register_class(I3D_OT_EnableOnlineAccess)
     bpy.utils.register_class(I3DExporterAddonPreferences)
 
     # Restore persisted prefs (survive uninstall/reinstall rollbacks)
@@ -321,3 +365,4 @@ def unregister():
         pass
 
     bpy.utils.unregister_class(I3DExporterAddonPreferences)
+    bpy.utils.unregister_class(I3D_OT_EnableOnlineAccess)
