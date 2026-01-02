@@ -71,68 +71,6 @@ def _i3d_get_enabled_conflicts():
     return conflicts
 
 
-# --- Safe quit with save prompt (for unsaved .blend files) ---
-_I3D_QUIT_AFTER_SAVE = False
-_I3D_QUIT_AFTER_SAVE_TICKS = 0
-_I3D_QUIT_AFTER_SAVE_INTERVAL = 0.5
-
-def _i3d_quit_after_save_poll():
-    global _I3D_QUIT_AFTER_SAVE, _I3D_QUIT_AFTER_SAVE_TICKS
-    if not _I3D_QUIT_AFTER_SAVE:
-        return None
-
-    # Quit only after the file is saved and clean
-    try:
-        is_saved = bpy.data.is_saved
-        is_dirty = bpy.data.is_dirty
-    except Exception:
-        is_saved = True
-        is_dirty = False
-
-    if is_saved and not is_dirty:
-        _I3D_QUIT_AFTER_SAVE = False
-        _I3D_QUIT_AFTER_SAVE_TICKS = 0
-        try:
-            bpy.ops.wm.quit_blender()
-        except Exception as e:
-            print(f"Unable to quit Blender: {e}")
-        return None
-
-    _I3D_QUIT_AFTER_SAVE_TICKS -= 1
-    if _I3D_QUIT_AFTER_SAVE_TICKS <= 0:
-        # User likely cancelled Save As or never finished saving; clear pending quit.
-        _I3D_QUIT_AFTER_SAVE = False
-        _I3D_QUIT_AFTER_SAVE_TICKS = 0
-        return None
-
-    return _I3D_QUIT_AFTER_SAVE_INTERVAL
-
-
-def _i3d_safe_quit():
-    global _I3D_QUIT_AFTER_SAVE, _I3D_QUIT_AFTER_SAVE_TICKS
-
-    try:
-        is_saved = bpy.data.is_saved
-        is_dirty = bpy.data.is_dirty
-    except Exception:
-        is_saved = True
-        is_dirty = False
-
-    if (not is_saved) or is_dirty:
-        # Ask user to save first. If the file has never been saved, this becomes Save As.
-        _I3D_QUIT_AFTER_SAVE = True
-        _I3D_QUIT_AFTER_SAVE_TICKS = int(120 / _I3D_QUIT_AFTER_SAVE_INTERVAL)  # 120 seconds
-
-        try:
-            bpy.app.timers.register(_i3d_quit_after_save_poll, first_interval=_I3D_QUIT_AFTER_SAVE_INTERVAL)
-        except Exception:
-            pass
-
-        bpy.ops.wm.save_mainfile('INVOKE_DEFAULT')
-        return
-
-    bpy.ops.wm.quit_blender()
-
 
 class I3D_OT_ReopenConflictDialog(bpy.types.Operator):
     bl_idname = "i3d.reopen_conflict_dialog"
@@ -155,78 +93,6 @@ class I3D_OT_ReopenConflictDialog(bpy.types.Operator):
 
 
 
-class I3D_OT_QuitFromConflictDialog(bpy.types.Operator):
-    bl_idname = "i3d.quit_from_conflict_dialog"
-    bl_label = "Quit Blender"
-    bl_options = {'INTERNAL'}
-
-    def invoke(self, context, event):
-        # If there are no conflicts anymore (e.g. user already disabled them),
-        # quit immediately without warning.
-        try:
-            conflicts = _i3d_get_enabled_conflicts()
-        except Exception:
-            conflicts = []
-
-        if not conflicts:
-            try:
-                bpy.ops.wm.quit_blender()
-            except Exception as e:
-                print(f"Unable to quit Blender: {e}")
-            return {'FINISHED'}
-
-        # Conflicts still exist -> show modal warning dialog
-        return context.window_manager.invoke_props_dialog(self, width=560)
-
-    def draw(self, context):
-        layout = self.layout
-        layout.label(text="WARNING: You chose to quit without selecting 'Disable Conflicts' first.", icon='ERROR')
-        layout.label(text="This will quit Blender, but you will receive the same popup next time")
-        layout.label(text="if these add-ons are still active.")
-        layout.separator()
-        layout.label(text="OK = Quit Blender (without saving).  Cancel = Return to conflict dialog.", icon='INFO')
-
-    def execute(self, context):
-        try:
-            bpy.ops.wm.quit_blender()
-        except Exception as e:
-            print(f"Unable to quit Blender: {e}")
-        return {'FINISHED'}
-
-    def cancel(self, context):
-        # Loop back to the original conflict dialog if the user cancels
-        try:
-            bpy.ops.i3d.addon_conflict_dialog('INVOKE_DEFAULT')
-        except Exception as e:
-            print(f"Unable to re-open conflict dialog: {e}")
-        return None
-
-
-class I3D_OT_ConfirmQuitWithoutDisablingConflicts(bpy.types.Operator):
-    bl_idname = "i3d.confirm_quit_without_disabling_conflicts"
-    bl_label = "Quit Without Disabling Conflicts?"
-    bl_options = {'INTERNAL'}
-
-    def invoke(self, context, event):
-        return context.window_manager.invoke_popup(self, width=560)
-
-    def draw(self, context):
-        layout = self.layout
-
-        layout.label(text="WARNING: You chose to quit without selecting 'Disable Conflicts' first.", icon='ERROR')
-        layout.label(text="This will quit Blender, but you will receive the same popup on next launch", icon='INFO')
-        layout.label(text="if these conflicting add-ons are still enabled.", icon='INFO')
-
-        layout.separator()
-
-        layout.label(text="Are you sure you want to quit Blender without disabling conflicts?", icon='HELP')
-
-        layout.separator()
-
-        row = layout.row()
-        row.scale_y = 1.1
-        row.operator("wm.quit_blender", text="Yes, Quit Blender", icon='QUIT')
-        row.operator("i3d.reopen_conflict_dialog", text="No", icon='CANCEL')
 
 
 class I3D_OT_AddonConflictDialog(bpy.types.Operator):
@@ -249,14 +115,10 @@ class I3D_OT_AddonConflictDialog(bpy.types.Operator):
             box.label(text=f"{name}  (module: {mod})", icon='CANCEL')
 
         layout.separator()
-        layout.label(text="Recommended: disable conflicts, then restart Blender.", icon='INFO')
+        layout.label(text="Recommended: disable conflicts to avoid add-on issues.", icon='INFO')
 
         row = layout.row()
-        op = row.operator("i3d.resolve_addon_conflicts", text="Disable Conflicts", icon='REMOVE')
-        op.action = 'DISABLE'
-
-        op = row.operator("i3d.resolve_addon_conflicts", text="Disable + Save Prefs + Quit", icon='QUIT')
-        op.action = 'DISABLE_SAVE_QUIT'
+        row.operator("i3d.resolve_addon_conflicts", text="Disable Conflicts", icon='REMOVE')
 
         row = layout.row()
         op = row.operator("preferences.addon_show", text="Open Add-on Preferences", icon="PREFERENCES")
@@ -272,8 +134,6 @@ class I3D_OT_AddonConflictDialog(bpy.types.Operator):
         else:
             row = layout.row()
             row.scale_y = 1.1
-            row.operator("i3d.quit_from_conflict_dialog", text="Quit", icon='QUIT')
-
             abort = row.operator("i3d.abort_installation", text="Abort Installation", icon='CANCEL')
             abort.use_save_preferences = False
         warning_box = layout.box()
@@ -297,15 +157,6 @@ class I3D_OT_ResolveAddonConflicts(bpy.types.Operator):
     bl_label = "Resolve Add-on Conflicts"
     bl_options = {'INTERNAL'}
 
-    action: bpy.props.EnumProperty(
-        name="Action",
-        items=[
-            ('DISABLE', "Disable", ""),
-            ('DISABLE_SAVE_QUIT', "Disable, Save Preferences & Quit", ""),
-        ],
-        default='DISABLE'
-    )
-
     def execute(self, context):
         conflicts = _i3d_get_enabled_conflicts()
 
@@ -320,12 +171,6 @@ class I3D_OT_ResolveAddonConflicts(bpy.types.Operator):
             bpy.ops.wm.save_userpref()
         except Exception as e:
             print(f"Unable to save user preferences: {e}")
-
-        if self.action == 'DISABLE_SAVE_QUIT':
-            try:
-                _i3d_safe_quit()
-            except Exception as e:
-                print(f"Unable to safely quit Blender: {e}")
 
         return {'FINISHED'}
 
@@ -496,6 +341,191 @@ except:
 
 g_dynamicGUIClsDict = {}
 g_modalsRunning = False
+
+
+# --------------------------------------------------------------
+# Selected material auto-sync + legacy customShader normalization
+# --------------------------------------------------------------
+_I3D_LAST_ACTIVE_OBJECT_NAME = None
+_I3D_LAST_ACTIVE_MATERIAL_NAME = None
+
+def i3d_normalize_customshader_value(value):
+    """Convert legacy absolute shader paths to $data/shaders/... tokens."""
+    if not isinstance(value, str):
+        return None
+
+    v = value.strip()
+    if len(v) >= 2 and ((v[0] == '"' and v[-1] == '"') or (v[0] == "'" and v[-1] == "'")):
+        v = v[1:-1]
+
+    # Normalize slashes for parsing
+    v_norm = v.replace('\\', '/')
+    v_norm = re.sub(r'/{2,}', '/', v_norm)
+
+    # Already tokenized
+    if v_norm.startswith('$'):
+        return v_norm
+
+    low = v_norm.lower()
+
+    # Common absolute/relative patterns
+    needle = '/data/shaders/'
+    pos = low.find(needle)
+    if pos == -1:
+        # also accept relative 'data/shaders/...'
+        if low.startswith('data/shaders/'):
+            tail = v_norm[len('data/shaders/'):]
+            tail = tail.lstrip('/')
+            tail = re.sub(r'/{2,}', '/', tail)
+            return f"$data/shaders/{tail}" if tail else None
+        return None
+
+    tail = v_norm[pos + len(needle):]
+    tail = tail.lstrip('/')
+    tail = re.sub(r'/{2,}', '/', tail)
+
+    if not tail:
+        return None
+
+    return f"$data/shaders/{tail}"
+
+@persistent
+def i3d_selected_material_sync_handler(scene, depsgraph):
+    """Keep Selected Material dropdown synced to the newly selected mesh (first material slot)."""
+    global _I3D_LAST_ACTIVE_OBJECT_NAME, _I3D_LAST_ACTIVE_MATERIAL_NAME
+    global g_disableSelectedMaterialEnumUpdateCallback
+
+    try:
+        settings = bpy.context.scene.I3D_UIexportSettings
+    except Exception:
+        return
+
+    try:
+        activeObject = bpy.context.active_object
+        if not isinstance(activeObject, bpy.types.Object):
+            activeObject = None
+    except Exception:
+        activeObject = None
+
+    obj_name = activeObject.name if activeObject is not None else ''
+    activeMat = None
+    if activeObject is not None:
+        try:
+            if getattr(activeObject, 'material_slots', None) and len(activeObject.material_slots) > 0:
+                activeMat = activeObject.material_slots[0].material
+        except Exception:
+            activeMat = None
+        if activeMat is None:
+            try:
+                activeMat = getattr(activeObject, 'active_material', None)
+            except Exception:
+                activeMat = None
+
+    mat_name = activeMat.name if activeMat is not None else 'None'
+
+    # Throttle: only act on real changes
+    if obj_name == _I3D_LAST_ACTIVE_OBJECT_NAME and mat_name == _I3D_LAST_ACTIVE_MATERIAL_NAME:
+        return
+    _I3D_LAST_ACTIVE_OBJECT_NAME = obj_name
+    _I3D_LAST_ACTIVE_MATERIAL_NAME = mat_name
+
+    # Convert legacy absolute customShader paths to tokens (old .blend files)
+    if activeMat is not None:
+        try:
+            if 'customShader' in activeMat:
+                old_val = activeMat['customShader']
+                new_val = i3d_normalize_customshader_value(old_val)
+                if new_val and new_val != old_val:
+                    activeMat['customShader'] = new_val
+        except Exception:
+            pass
+
+    # Sync the dropdown
+    try:
+        if settings.i3D_selectedMaterialEnum != mat_name:
+            g_disableSelectedMaterialEnumUpdateCallback = True
+            try:
+                settings.i3D_selectedMaterialEnum = mat_name
+            except Exception:
+                settings.i3D_selectedMaterialEnum = 'None'
+            g_disableSelectedMaterialEnumUpdateCallback = False
+    except Exception:
+        pass
+
+# --------------------------------------------------------------
+# Safe UI bootstrap (Blender 5+): never call bpy.ops from draw()
+# --------------------------------------------------------------
+_I3D_BOOTSTRAP_SCHEDULED = False
+
+def _i3d_find_override(area_type="VIEW_3D"):
+    wm = bpy.context.window_manager
+    if wm is None:
+        return None
+
+    for win in wm.windows:
+        scr = win.screen
+        if scr is None:
+            continue
+        for area in scr.areas:
+            if area.type != area_type:
+                continue
+            for region in area.regions:
+                if region.type == "WINDOW":
+                    return {"window": win, "screen": scr, "area": area, "region": region}
+    return None
+
+
+def _i3d_bootstrap_timer():
+    global _I3D_BOOTSTRAP_SCHEDULED, g_modalsRunning
+
+    if g_modalsRunning:
+        _I3D_BOOTSTRAP_SCHEDULED = False
+        return None
+
+    wm = bpy.context.window_manager
+    if wm is None or not wm.windows:
+        return 0.25  # retry soon
+
+    try:
+        override = _i3d_find_override("VIEW_3D") or _i3d_find_override("PROPERTIES")
+        if override:
+            with bpy.context.temp_override(**override):
+                bpy.ops.i3d.active_object('INVOKE_DEFAULT')
+                bpy.ops.i3d.predef_check('INVOKE_DEFAULT')
+        else:
+            bpy.ops.i3d.active_object('INVOKE_DEFAULT')
+            bpy.ops.i3d.predef_check('INVOKE_DEFAULT')
+
+        g_modalsRunning = True
+
+    except RuntimeError:
+        return 0.25  # context not ready yet, retry
+    except Exception as e:
+        print(e)
+        _I3D_BOOTSTRAP_SCHEDULED = False
+        return None
+
+    # Force redraw so panels appear immediately
+    try:
+        for win in wm.windows:
+            for area in win.screen.areas:
+                area.tag_redraw()
+    except Exception:
+        pass
+
+    _I3D_BOOTSTRAP_SCHEDULED = False
+    return None
+
+
+def i3d_schedule_bootstrap():
+    global _I3D_BOOTSTRAP_SCHEDULED, g_modalsRunning
+    if g_modalsRunning:
+        return
+    if _I3D_BOOTSTRAP_SCHEDULED:
+        return
+    _I3D_BOOTSTRAP_SCHEDULED = True
+    bpy.app.timers.register(_i3d_bootstrap_timer, first_interval=0.1)
+
 
 #g_materialTemplateThumbnails = None
 g_loadedMaterialTemplates = {'templates': {}}
@@ -1602,9 +1632,7 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
     def draw( self, context ):
         global g_modalsRunning
         if not g_modalsRunning:
-            bpy.ops.i3d.active_object('INVOKE_DEFAULT')
-            bpy.ops.i3d.predef_check('INVOKE_DEFAULT')
-            g_modalsRunning = True
+            i3d_schedule_bootstrap()
         if i3d_changelog.getHasChangedAnythingSinceLastView():
             i3d_export.I3DShowChangelog()
 
@@ -2884,12 +2912,13 @@ class I3D_OT_modal_active_object(bpy.types.Operator):
         global TYPE_STRING_UINT
         global TYPE_ENUM
 
-        activeObject = None
-        objects = selectionUtil.getSelectedObjects(context)
-        for obj in objects:
-            if isinstance(obj, bpy.types.Object):
-                activeObject = obj
-                break
+        activeObject = context.active_object if isinstance(getattr(context, "active_object", None), bpy.types.Object) else None
+        if activeObject is None:
+            objects = selectionUtil.getSelectedObjects(context)
+            for obj in objects:
+                if isinstance(obj, bpy.types.Object):
+                    activeObject = obj
+                    break
 
         if context.scene.I3D_UIexportSettings.UI_autoAssign:
             if activeObject is not None:
@@ -2920,12 +2949,26 @@ class I3D_OT_modal_active_object(bpy.types.Operator):
                                 dcc.I3DSaveObjectAttributes()
 
         # Update selected material
-        activeMat = getattr(activeObject, "active_material", None) if activeObject is not None else None
+        activeMat = None
+        if activeObject is not None:
+            # Prefer the first material slot (requested behavior), fallback to active_material
+            try:
+                if getattr(activeObject, "material_slots", None) and len(activeObject.material_slots) > 0:
+                    activeMat = activeObject.material_slots[0].material
+            except Exception:
+                activeMat = None
+            if activeMat is None:
+                activeMat = getattr(activeObject, "active_material", None)
+
         new_mat = activeMat.name if activeMat is not None else "None"
 
         if context.scene.I3D_UIexportSettings.i3D_selectedMaterialEnum != new_mat:
             g_disableSelectedMaterialEnumUpdateCallback = True
-            context.scene.I3D_UIexportSettings.i3D_selectedMaterialEnum = new_mat
+            try:
+                context.scene.I3D_UIexportSettings.i3D_selectedMaterialEnum = new_mat
+            except Exception:
+                # If the enum list doesn't contain this material, fall back to None
+                context.scene.I3D_UIexportSettings.i3D_selectedMaterialEnum = "None"
             g_disableSelectedMaterialEnumUpdateCallback = False
 
         if activeObject is not None:
@@ -3126,16 +3169,60 @@ class I3D_OT_PanelAddShader_ButtonLoad( bpy.types.Operator):
         materialObjName = bpy.context.scene.I3D_UIexportSettings.i3D_selectedMaterialEnum
         materialObj = None
         if materialObjName != "None":
-            materialObj = bpy.data.materials[materialObjName]
+            materialObj = bpy.data.materials.get(materialObjName)
+
+        # Fallback: if the dropdown isn't synced yet, use the active object material
+        if materialObj is None:
+            try:
+                activeObject = context.active_object
+                if activeObject is not None and isinstance(activeObject, bpy.types.Object):
+                    materialObj = activeObject.active_material
+            except Exception:
+                pass
+
+        # Normalize legacy customShader on the material (old .blend files)
+        if materialObj is not None:
+            try:
+                if "customShader" in materialObj:
+                    old_val = materialObj["customShader"]
+                    new_val = i3d_normalize_customshader_value(old_val)
+                    if new_val and new_val != old_val:
+                        materialObj["customShader"] = new_val
+            except Exception:
+                pass
 
         shaderData = getShaderDataFromMaterialObj(self, materialObj)
 
+        # Decide which shader xml to load into the UI:
+        #  - Prefer the material's customShader (if present and available)
+        #  - Otherwise keep the current dropdown selection
+        #  - Otherwise pick the first real shader file from the directory list
+        shaderCandidates = [t[0] for t in I3D_PT_PanelExport.getShadersFromDirectory(self,context)]
+        currentShader = context.scene.I3D_UIexportSettings.i3D_shaderEnum
+        desiredShader = shaderData.get("shader") if shaderData else None
+
+        selectedShader = None
+        if desiredShader and desiredShader in shaderCandidates:
+            selectedShader = desiredShader
+        elif currentShader and currentShader in shaderCandidates and currentShader != "None":
+            selectedShader = currentShader
+        else:
+            for s in shaderCandidates:
+                if s and s != "None":
+                    selectedShader = s
+                    break
+
+        if not selectedShader or selectedShader == "None":
+            self.report({'WARNING'}, "No shader xml found to load (check Game Path and Shader Folder)")
+            return {'CANCELLED'}
+
+        context.scene.I3D_UIexportSettings.i3D_shaderEnum = selectedShader
+
         try:
-            context.scene.I3D_UIexportSettings.i3D_shaderEnum = shaderData["shader"]
             fileShaderData = extractXMLShaderData()
-        except:
-            context.scene.I3D_UIexportSettings.i3D_shaderEnum = [t[0] for t in I3D_PT_PanelExport.getShadersFromDirectory(self,context)][0]
-            fileShaderData = extractXMLShaderData()
+        except Exception as e:
+            self.report({'WARNING'}, "Unable to load shader XML: {}".format(e))
+            return {'CANCELLED'}
 
         if fileShaderData:
             variationGroupsStr = None
@@ -3250,27 +3337,31 @@ class I3D_OT_PanelAddShader_ButtonAdd( bpy.types.Operator):
         for delKey in [k for k in materialObj.keys() if k.startswith("custom") or k.startswith("templatedParameterTemplateMenu_")]:
             del materialObj[delKey]
         if materialObj:
-            dirPath = bpy.path.abspath(context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation)
+            shaderFolderRaw = context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation
             gamePath = getGamePath()
             if gamePath is None or gamePath == "":
                 gamePath = bpy.context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay
-            dirPath = resolveGiantsPath(dirPath, gamePath)
+            if shaderFolderRaw and shaderFolderRaw[0] == "$":
+                dirPath = resolveGiantsPath(shaderFolderRaw, gamePath)
+            else:
+                dirPath = resolveGiantsPath(bpy.path.abspath(shaderFolderRaw), gamePath)
             fileName = context.scene.I3D_UIexportSettings.i3D_shaderEnum
             if fileName == "None":
                 self.report({'WARNING'},'No config xml file set!')
                 return {'FINISHED'}
-            xmlFilePath = dirPath + os.sep + fileName
-            if not os.path.isfile(xmlFilePath):
-                self.report({'WARNING'},'Could not find xml file! (%s)' % xmlFilePath)
+            xmlFilePathAbs = dirPath + os.sep + fileName
+            if not os.path.isfile(xmlFilePathAbs):
+                self.report({'WARNING'},'Could not find xml file! (%s)' % xmlFilePathAbs)
                 return {'FINISHED'}
-            if not xmlFilePath.endswith(".xml"):
-                self.report({'WARNING'},"Selected File is not xml format: {}".format(xmlFilePath.split("\\")[-1]))
+            if not xmlFilePathAbs.endswith(".xml"):
+                self.report({'WARNING'},"Selected File is not xml format: {}".format(xmlFilePathAbs.split("\\")[-1]))
                 return {'FINISHED'}
 
-            if context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation[0] == "$":
-                xmlFilePath = context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation + os.sep + fileName
+            if shaderFolderRaw and shaderFolderRaw[0] == "$":
+                portableFolder = shaderFolderRaw.rstrip("/\\")
+                xmlFilePath = portableFolder + "/" + fileName
             else:
-                xmlFilePath = pathUtil.resolvePath(xmlFilePath,targetDirectory = bpy.path.abspath("//"))
+                xmlFilePath = pathUtil.resolvePath(xmlFilePathAbs,targetDirectory = bpy.path.abspath("//"))
             materialObj["customShader"] = xmlFilePath
             if "parameters" in g_dynamicGUIClsDict:
                 for k,i in g_dynamicGUIClsDict["parameters"].__annotations__.items():
@@ -3532,7 +3623,13 @@ class I3D_OT_PanelSetGameShader(bpy.types.Operator):
                 gameInstallationPath = dirf.findFS22Path()
                 if gameInstallationPath != "":
                     try:
+                        # Persist for future sessions (supports classic and namespaced add-on keys)
                         addon_entry = bpy.context.preferences.addons.get("io_export_i3d_reworked")
+                        if addon_entry is None:
+                            for addon_key, addon_val in bpy.context.preferences.addons.items():
+                                if addon_key.endswith(".io_export_i3d_reworked"):
+                                    addon_entry = addon_val
+                                    break
                         if addon_entry and getattr(addon_entry, "preferences", None):
                             addon_entry.preferences.game_install_path = gameInstallationPath
                     except Exception:
@@ -3545,25 +3642,15 @@ class I3D_OT_PanelSetGameShader(bpy.types.Operator):
         # Keep legacy scene setting in sync (the addon still reads from this in many places)
         context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay = gameInstallationPath
 
-        self.report({'INFO'},"Game Shader Path set")
-        gameShaderFolder = os.path.join(gameInstallationPath, "data", "shaders") + os.sep
+        gameShaderFolder = os.path.join(gameInstallationPath, "data", "shaders")
         if not os.path.isdir(bpy.path.abspath(gameShaderFolder)):
             self.report({'WARNING'},"{} is no valid path".format(gameShaderFolder))
             return {'FINISHED'}
 
-        context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation = gameShaderFolder
+        # Store as portable GIANTS path so .blend files work across different install locations
+        context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation = "$data/shaders"
         shaderEnumUpdate(self,context)
-        return {'FINISHED'}
-
-
         self.report({'INFO'},"Game Shader Path set")
-        gameShaderFolder = gameInstallationPath + "data\\shaders\\"
-        if not os.path.isdir(bpy.path.abspath(gameShaderFolder)):
-            self.report({'WARNING'},"{} is no valid path".format(gameShaderFolder))
-            return {'FINISHED'}
-
-        context.scene.I3D_UIexportSettings.i3D_shaderFolderLocation = gameInstallationPath + "data\\shaders\\"
-        shaderEnumUpdate(self,context)
         return {'FINISHED'}
 
 class I3D_OT_PanelOpenI3DFilebrowser(bpy.types.Operator,bpy_extras.io_utils.ImportHelper):
@@ -4132,9 +4219,7 @@ def modal_handler(dummy):
     global g_modalsRunning
 
     try:
-        bpy.ops.i3d.active_object('INVOKE_DEFAULT')
-        bpy.ops.i3d.predef_check('INVOKE_DEFAULT')
-        g_modalsRunning = True
+        i3d_schedule_bootstrap()
     except Exception as e:
         print(e)
 
@@ -4202,8 +4287,6 @@ classes = (
 
 def register():
     bpy.utils.register_class( I3D_OT_ReopenConflictDialog )
-    bpy.utils.register_class( I3D_OT_QuitFromConflictDialog )
-    bpy.utils.register_class( I3D_OT_ConfirmQuitWithoutDisablingConflicts )
     bpy.utils.register_class( I3D_OT_AddonConflictDialog )
     bpy.utils.register_class( I3D_OT_ResolveAddonConflicts )
     bpy.utils.register_class( I3D_OT_AbortInstallation )
@@ -4229,6 +4312,8 @@ def register():
     # --------------------------Handler-------------------------------------------
     bpy.app.handlers.load_post.append(load_handler)
     bpy.app.handlers.load_post.append(modal_handler)
+    if i3d_selected_material_sync_handler not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(i3d_selected_material_sync_handler)
     # --------------------------Context Menu-------------------------------------------
     bpy.types.VIEW3D_MT_edit_mesh_context_menu.append(drawEditMeshContextMenu)
     bpy.types.VIEW3D_MT_object_context_menu.append(drawObjectContextMenu)
@@ -4255,8 +4340,6 @@ def unregister():
     bpy.utils.unregister_class( I3D_OT_AbortInstallation )
     bpy.utils.unregister_class( I3D_OT_ResolveAddonConflicts )
     bpy.utils.unregister_class( I3D_OT_AddonConflictDialog )
-    bpy.utils.unregister_class( I3D_OT_ConfirmQuitWithoutDisablingConflicts )
-    bpy.utils.unregister_class( I3D_OT_QuitFromConflictDialog )
     bpy.utils.unregister_class( I3D_OT_ReopenConflictDialog )
     bpy.utils.unregister_class( I3D_OT_MenuExport )
     bpy.utils.unregister_class( I3D_UIexportSettings )
@@ -4264,6 +4347,11 @@ def unregister():
 
     bpy.app.handlers.load_post.remove(modal_handler)
     bpy.app.handlers.load_post.remove(load_handler)
+    try:
+        bpy.app.handlers.depsgraph_update_post.remove(i3d_selected_material_sync_handler)
+    except:
+        pass
+
 
     # --------------------------Context Menu-------------------------------------------
     bpy.types.VIEW3D_MT_edit_mesh_context_menu.remove(drawEditMeshContextMenu)
