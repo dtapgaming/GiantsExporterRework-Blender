@@ -44,10 +44,47 @@ def detect_channel(tag: str, prerelease: bool) -> str:
 
 
 def parse_version(tag: str) -> list[int]:
+    """Extract x.y.z (major.minor.patch) from a release tag.
+
+    Examples:
+      - '10.0.18' -> [10, 0, 18]
+      - '10.0.17.2ALPHA' -> [10, 0, 17]
+
+    Build numbers (the optional 4th numeric component) are handled separately
+    by `parse_build(...)` because Blender add-ons only expose a 3-int
+    `bl_info['version']` tuple.
+    """
+
     m = re.search(r"(\d+)\.(\d+)\.(\d+)", tag or "")
     if not m:
         raise RuntimeError(f"Tag '{tag}' missing x.y.z version.")
     return [int(m.group(1)), int(m.group(2)), int(m.group(3))]
+
+
+def parse_build(tag: str) -> int:
+    """Extract optional build number from a release tag.
+
+    Examples:
+      - '10.0.18' -> 0
+      - '10.0.17.2ALPHA' -> 2
+      - '10.0.17.12BETA' -> 12
+
+    This matches the 4th numeric component when present (after the third dot).
+    """
+
+    tag = tag or ""
+
+    # Preferred: 10.0.17.2ALPHA / 10.0.17.2BETA / 10.0.17.2
+    m = re.search(r"\d+\.\d+\.\d+\.(\d+)", tag)
+    if m:
+        return int(m.group(1))
+
+    # Legacy: 10.0.12.ALPHA2 / 10.0.12.BETA3
+    m = re.search(r"(?:ALPHA|BETA)(\d+)", tag, flags=re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+
+    return 0
 
 
 def _extract_manifest_message(release_body: str) -> str | None:
@@ -204,6 +241,7 @@ def main() -> None:
 
     channel = detect_channel(tag, prerelease)
     version = parse_version(tag)
+    build = parse_build(tag)
 
     # We always upload the asset to the Release with this exact name.
     download_url = (
@@ -224,7 +262,18 @@ def main() -> None:
     existing_notes = ch.get("notes")
 
     # Update version and links for THIS channel.
+    #
+    # NOTE: We keep the numeric core version (x.y.z) in `version` to remain
+    # compatible with older in-Blender updaters that assume `version` has 3
+    # integers. If a 4th-digit build number is present in the tag
+    # (e.g. 10.0.17.2ALPHA), we also write it to `build`.
     ch["version"] = version
+    if build > 0:
+        ch["build"] = build
+    else:
+        # If the previous manifest had a build number, drop it for tags that
+        # don't carry a 4th digit.
+        ch.pop("build", None)
     ch.setdefault("min_blender", [4, 0, 0])
 
     ch.setdefault("download", {})
