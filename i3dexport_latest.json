@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_utc": "2026-01-02T02:51:44Z",
+  "generated_utc": "2026-01-02T02:57:50Z",
   "channels": {
     "stable": {
       "version": [
@@ -28,7 +28,7 @@
       "version": [
         10,
         0,
-        16
+        17
       ],
       "min_blender": [
         4,
@@ -36,12 +36,19 @@
         0
       ],
       "download": {
-        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.16/io_export_i3d_reworked.zip"
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.17.BETA0/io_export_i3d_reworked.zip"
       },
       "notes": [
-        "Same as 10.0.16 (Stable Release) ( Start Beta Build )"
+        "Fixed Blender 5 panel draw issues (no more restart required after install/update).",
+        "Removed all \u201cQuit Blender\u201d / restart-required logic from the add-on.",
+        "Fixed shader Load behavior and material dropdown syncing when selecting meshes (including old .blend files).",
+        "Added automatic conversion of legacy absolute customShader paths to portable $data/shaders/....",
+        "Improved update/rollback behavior: update checks now default ON and user update settings persist across reinstall/rollback.",
+        "Added a one-click button to enable Blender Allow Online Access when update checks are enabled but Blender blocks internet access.",
+        "Button for activate online access is not implemented in this version to make sure rollback really happens.",
+        "Faked version to 10.0.15 To Test Downgrading preference saving. Version is really 10.0.17 Build1 Alpha Current Alpha Build is Build2"
       ],
-      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.16.BETA",
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.17.BETA0",
       "message": "A New Beta Build Is Available."
     },
     "alpha": {
