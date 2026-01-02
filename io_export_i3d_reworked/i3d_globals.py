@@ -63,6 +63,85 @@ def I3DLogPerformance(text):
 #sys.path.append("c:/users/nicolas wrobel/appdata/roaming/python/python310/site-packages")
 
 import bpy
+import os
+import json
+
+# --------------------------------------------------------------
+# Persistent preferences (survive uninstall/reinstall rollbacks)
+# --------------------------------------------------------------
+_I3D_PREFS_CACHE_FILE = "io_export_i3d_reworked_prefs.json"
+
+def _i3d_prefs_cache_path():
+    try:
+        cfg = bpy.utils.user_resource('CONFIG')
+    except Exception:
+        cfg = ""
+    if not cfg:
+        return ""
+    return os.path.join(cfg, _I3D_PREFS_CACHE_FILE)
+
+def _i3d_find_addon_prefs():
+    try:
+        addon_entry = bpy.context.preferences.addons.get("io_export_i3d_reworked")
+        if addon_entry is None:
+            for addon_key, addon_val in bpy.context.preferences.addons.items():
+                if addon_key.endswith(".io_export_i3d_reworked"):
+                    addon_entry = addon_val
+                    break
+        if addon_entry and getattr(addon_entry, "preferences", None):
+            return addon_entry.preferences
+    except Exception:
+        pass
+    return None
+
+
+def _i3d_prefs_save_from_prefs(prefs):
+    path = _i3d_prefs_cache_path()
+    if not path:
+        return
+    try:
+        data = {
+            "game_install_path": getattr(prefs, "game_install_path", ""),
+            "enable_update_checks": bool(getattr(prefs, "enable_update_checks", True)),
+            "update_channel": getattr(prefs, "update_channel", "STABLE"),
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
+def _i3d_prefs_load():
+    path = _i3d_prefs_cache_path()
+    if not path or not os.path.isfile(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return {}
+        return data
+    except Exception:
+        return {}
+
+def _i3d_prefs_restore_into_prefs(prefs):
+    data = _i3d_prefs_load()
+    if not data:
+        return
+    try:
+        # Only fill in missing path; never overwrite an explicit user selection.
+        if (not getattr(prefs, "game_install_path", "")) and data.get("game_install_path"):
+            prefs.game_install_path = data.get("game_install_path", "")
+        # Restore update flag + channel (safe defaults if missing)
+        if "enable_update_checks" in data:
+            prefs.enable_update_checks = bool(data.get("enable_update_checks"))
+        if data.get("update_channel") in ("STABLE", "BETA", "ALPHA"):
+            prefs.update_channel = data.get("update_channel")
+    except Exception:
+        pass
+
+def _i3d_prefs_on_update(self, context):
+    _i3d_prefs_save_from_prefs(self)
+
 
 class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
     """Addon preferences for GIANTS I3D Exporter.
@@ -74,6 +153,7 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         description="Path to the Farming Simulator 25 game folder",
         default="",
         subtype='DIR_PATH',
+            update=_i3d_prefs_on_update,
     )
 
     # --------------------------------------------------------------
@@ -82,7 +162,8 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
     enable_update_checks: bpy.props.BoolProperty(
         name="Enable Update Checks (Internet)",
         description="Allows this add-on to access the internet to check for updates on Blender startup",
-        default=False,
+        default=True,
+            update=_i3d_prefs_on_update,
     )
 
     update_channel: bpy.props.EnumProperty(
@@ -94,6 +175,7 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
             ("ALPHA", "Alpha", "Alpha/dev builds"),
         ],
         default="STABLE",
+            update=_i3d_prefs_on_update,
     )
 
     # Internal: remembers the previously selected update channel in the UI.
@@ -220,6 +302,22 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
 def register():
     bpy.utils.register_class(I3DExporterAddonPreferences)
 
-def unregister():
-    bpy.utils.unregister_class(I3DExporterAddonPreferences)
+    # Restore persisted prefs (survive uninstall/reinstall rollbacks)
+    try:
+        prefs = _i3d_find_addon_prefs()
+        if prefs is not None:
+            _i3d_prefs_restore_into_prefs(prefs)
+            _i3d_prefs_save_from_prefs(prefs)
+    except Exception:
+        pass
 
+def unregister():
+    # Save prefs before unregister (best effort)
+    try:
+        prefs = _i3d_find_addon_prefs()
+        if prefs is not None:
+            _i3d_prefs_save_from_prefs(prefs)
+    except Exception:
+        pass
+
+    bpy.utils.unregister_class(I3DExporterAddonPreferences)

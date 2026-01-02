@@ -2015,7 +2015,7 @@ class I3D_OT_UpdateFailedDialog(bpy.types.Operator):
 
         warn = layout.box()
         warn.alert = True
-        warn.label(text="After installing manually, restart Blender.", icon='INFO')
+        warn.label(text="After installing manually, no quit needed.", icon='INFO')
 
     def execute(self, context):
         return {'FINISHED'}

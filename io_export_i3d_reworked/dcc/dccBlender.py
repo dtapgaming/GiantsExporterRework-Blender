@@ -1259,15 +1259,24 @@ def getMaterialFiles(materialStr):
                     elif selectedParentSubTemplateId is not None:
                         selectedSubTemplateId = selectedParentSubTemplateId
 
-                    if selectedSubTemplateId is not None:
+                    # Handle template names with description (e.g. "NAME (Main color)")
+                    try:
+                        selectedSubTemplateId = selectedSubTemplateId.split()[0]
+                    except:
+                        pass
+
+                    if selectedSubTemplateId is not None and selectedSubTemplateId not in subTemplate["templates"]:
+                        selectedSubTemplateId = subTemplate["defaultParentTemplate"]
+
+                    if selectedSubTemplateId is not None and selectedSubTemplateId in subTemplate["templates"]:
                         selectedSubTemplate = subTemplate["templates"][selectedSubTemplateId]
                         for textureName, _ in parameterTemplate["textures"].items():
                             if textureName not in handledTextures and textureName in selectedSubTemplate:
                                 m_files[selectedSubTemplate[textureName]] = "customTexture_{}".format(textureName)
                                 handledTextures.append(textureName)
 
-                        if "parentTemplate" in selectedSubTemplateId:
-                            selectedParentSubTemplateId = selectedSubTemplateId["parentTemplate"]
+                        if "parentTemplate" in selectedSubTemplate:
+                            selectedParentSubTemplateId = selectedSubTemplate["parentTemplate"]
                         else:
                             selectedParentSubTemplateId = subTemplate["defaultParentTemplate"]
 
@@ -1878,15 +1887,24 @@ def getMaterialData(m_nodeStr, m_data):
                     elif selectedParentSubTemplateId is not None:
                         selectedSubTemplateId = selectedParentSubTemplateId
 
-                    if selectedSubTemplateId is not None:
+                    # Handle template names with description (e.g. "NAME (Main color)")
+                    try:
+                        selectedSubTemplateId = selectedSubTemplateId.split()[0]
+                    except:
+                        pass
+
+                    if selectedSubTemplateId is not None and selectedSubTemplateId not in subTemplate["templates"]:
+                        selectedSubTemplateId = subTemplate["defaultParentTemplate"]
+
+                    if selectedSubTemplateId is not None and selectedSubTemplateId in subTemplate["templates"]:
                         selectedSubTemplate = subTemplate["templates"][selectedSubTemplateId]
                         for paramName, _ in parameterTemplate["parameters"].items():
                             if paramName not in handledParams and paramName in selectedSubTemplate:
                                 m_customParameters[paramName] = selectedSubTemplate[paramName]
                                 handledParams.append(paramName)
 
-                        if "parentTemplate" in selectedSubTemplateId:
-                            selectedParentSubTemplateId = selectedSubTemplateId["parentTemplate"]
+                        if "parentTemplate" in selectedSubTemplate:
+                            selectedParentSubTemplateId = selectedSubTemplate["parentTemplate"]
                         else:
                             selectedParentSubTemplateId = subTemplate["defaultParentTemplate"]
 
