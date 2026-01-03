@@ -244,13 +244,13 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
     update_manifest_url: bpy.props.StringProperty(
         name="Update Manifest URL",
         description="URL to a JSON file describing the latest versions for each channel",
-        default="https://i3dexportupdatechecker.dtapgaming.com",
+        default="https://raw.githubusercontent.com/dtapgaming/GiantsExporterRework-Blender/main/i3dexport_latest.json",
     )
 
     update_manifest_url_fallback: bpy.props.StringProperty(
         name="Update Manifest URL (Fallback)",
         description="Fallback URL used if the primary manifest URL fails (timeout/offline).",
-        default="https://raw.githubusercontent.com/dtapgaming/GiantsExporterRework-Blender/main/i3dexport_latest.json",
+        default="https://i3dexportupdatechecker.dtapgaming.com",
         options={'HIDDEN'},
     )
 
@@ -272,6 +272,27 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         name="Skip Version (Alpha)",
         description="Internal: skip update prompts for this alpha version",
         default="",
+        options={'HIDDEN'},
+    )
+
+    update_skip_build_stable: bpy.props.IntProperty(
+        name="Skip Build (Stable)",
+        description="Internal: skip update prompts for this stable build",
+        default=0,
+        options={'HIDDEN'},
+    )
+
+    update_skip_build_beta: bpy.props.IntProperty(
+        name="Skip Build (Beta)",
+        description="Internal: skip update prompts for this beta build",
+        default=0,
+        options={'HIDDEN'},
+    )
+
+    update_skip_build_alpha: bpy.props.IntProperty(
+        name="Skip Build (Alpha)",
+        description="Internal: skip update prompts for this alpha build",
+        default=0,
         options={'HIDDEN'},
     )
 
@@ -335,7 +356,8 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
             import importlib
             mod = importlib.import_module("io_export_i3d_reworked")
             v = mod.bl_info.get("version", (0, 0, 0))
-            body.label(text="Installed Version: {:d}.{:d}.{:d}".format(int(v[0]), int(v[1]), int(v[2])))
+            b = getattr(mod, "I3D_REWORKED_BUILD", 0)
+            body.label(text="Installed Version: {:d}.{:d}.{:d}.{:d}".format(int(v[0]), int(v[1]), int(v[2]), int(b)))
         except Exception:
             pass
 
