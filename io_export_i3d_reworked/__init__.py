@@ -22,13 +22,18 @@ bl_info = {
     "name": "GIANTS I3D Exporter REWORKED",
     "author": "GIANTS Software | Dtap Gaming",
     "blender": (4, 3, 0),
-    "version": ( 10, 0, 15 ),
+    "version": ( 10, 0, 17 ),
     "location": "GIANTS I3D",
     "description": "GIANTS Utilities and Exporter Reworked for Blender 4.3+",
     "warning": "Designed for Blender 4.3 and above.",
     "wiki_url": "http://gdn.giants-software.com",
     "tracker_url": "https://discord.gg/NazY3trnnm",
     "category": "Game Engine",}
+# NOTE: Blender only supports a 3-part add-on version in bl_info['version'].
+# This build number is used ONLY by the updater to distinguish rebuilds
+# of the same semantic version (e.g. 10.0.18 build 1 vs build 2).
+I3D_REWORKED_BUILD = 9
+
 
 global DCC_PLATFORM
 DCC_PLATFORM = "blender"
