@@ -32,7 +32,7 @@ bl_info = {
 # NOTE: Blender only supports a 3-part add-on version in bl_info['version'].
 # This build number is used ONLY by the updater to distinguish rebuilds
 # of the same semantic version (e.g. 10.0.18 build 1 vs build 2).
-I3D_REWORKED_BUILD = 9
+I3D_REWORKED_BUILD = 10
 
 
 global DCC_PLATFORM
@@ -41,6 +41,10 @@ DCC_PLATFORM = "blender"
 if "bpy" in locals():
     import importlib
     importlib.reload(i3d_ui)
+    try:
+        importlib.reload(i3d_colorLibrary)
+    except Exception:
+        pass
     importlib.reload(dcc)
     importlib.reload(i3d_export)
     importlib.reload(i3d_globals)
@@ -50,6 +54,7 @@ if "bpy" in locals():
         pass
 else:
     from . import i3d_ui
+    from . import i3d_colorLibrary
     from . import dcc
     from . import i3d_export
     from . import i3d_globals
@@ -96,6 +101,7 @@ def register():
                                                                   update=update_xml_config_id)
     bpy.types.EditBone.I3D_XMLconfigID = bpy.props.StringProperty(default='')
     i3d_globals.register()
+    i3d_colorLibrary.register()
     i3d_ui.register()
     updateChecker.register()
     bpy.utils.register_class( I3D_MT_Menu )
@@ -106,6 +112,7 @@ def unregister():
     bpy.types.STATUSBAR_HT_header.remove(draw_I3D_Menu)
     bpy.utils.unregister_class( I3D_MT_Menu )
     i3d_ui.unregister()
+    i3d_colorLibrary.unregister()
     updateChecker.unregister()
     i3d_globals.unregister()
     del bpy.types.Object.I3D_XMLconfigBool
