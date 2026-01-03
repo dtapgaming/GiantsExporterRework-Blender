@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_utc": "2026-01-02T09:22:02Z",
+  "generated_utc": "2026-01-03T03:00:55Z",
   "channels": {
     "stable": {
       "version": [
@@ -63,21 +63,20 @@
         0
       ],
       "download": {
-        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.17.2ALPHA/io_export_i3d_reworked.zip"
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.17.9ALPHA/io_export_i3d_reworked.zip"
       },
       "notes": [
-        "Added 4th Digit Build Number (Testing) for alpha and beta build numbers",
-        "Added a starting update screen to let users know something is happening (working on making it disappear when done updating.",
+        "Added 4th Digit Build Number (Testing) build numbers",
         "Fixed Blender 5 panel draw issues (no more restart required after install/update).",
         "Removed all \u201cQuit Blender\u201d / restart-required logic from the add-on.",
         "Fixed shader Load behavior and material dropdown syncing when selecting meshes (including old .blend files).",
-        "Added automatic conversion of legacy absolute customShader paths to portable $data/shaders/....",
+        "Added automatic conversion of legacy absolute customShader paths to portable $data/shaders (now allows Handing blend files off to co-modders without having to deal with fixing materials)",
         "Improved update/rollback behavior: update checks now default ON and user update settings persist across reinstall/rollback.",
-        "Added a one-click button to enable Blender Allow Online Access when update checks are enabled but Blender blocks internet access."
+        "Added a one-click button to enable Blender Allow Online Access when update checks are enabled but Blenders online internet access isnt."
       ],
-      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.17.2ALPHA",
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.17.9ALPHA",
       "message": "A New Alpha Build Is Available. I do not suggest being in ALPHA.",
-      "build": 5
+      "build": 9
     }
   }
 }
