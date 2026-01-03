@@ -37,6 +37,9 @@ from .helpers.pathHelper import getGamePath, resolveGiantsPath
 from .util import logUtil, pathUtil, stringUtil, selectionUtil, i3d_shaderUtil
 from .dcc import UINT_MAX_AS_STRING, dccBlender, g_colMaskFlags, g_collisionBitmaskAttributes, TYPE_BOOL, TYPE_INT, TYPE_FLOAT, TYPE_ENUM, TYPE_STRING, TYPE_STRING_UINT
 
+# Color Library (My Color Library / Giants Library)
+from . import i3d_colorLibrary
+
 
 import math
 from mathutils import Vector, Matrix, Euler
@@ -2196,6 +2199,23 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
 
                     row.operator("i3d.panelsetgameshader", icon='ZOOM_ALL')
 
+            # Color Library (below Shaders Folder box)
+            cl_box = layout.box()
+            cl_row = cl_box.row()
+            cl_row.prop(
+                context.scene.I3D_UIexportSettings,
+                "UI_colorLibrary",
+                text="Color Library",
+                icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_colorLibrary else 'TRIA_RIGHT',
+                icon_only=False,
+                emboss=False,
+            )
+            if context.scene.I3D_UIexportSettings.UI_colorLibrary:
+                try:
+                    i3d_colorLibrary.draw_color_library(cl_box, context)
+                except Exception as e:
+                    print(f"[I3D Color Library] draw failed: {e}")
+
             # Selected material dropdown.
             box = layout.box()
             row = box.row()
@@ -3915,6 +3935,7 @@ class I3D_UIexportSettings( bpy.types.PropertyGroup ):
     UI_lightAttributes      : bpy.props.BoolProperty   ( name = "Light Attributes",      default = False )
     UI_ddsExportOptions     : bpy.props.BoolProperty   ( name = "DDS Export Options",    default = False )
     UI_shaderFolder         : bpy.props.BoolProperty   ( name = "Shaders Folder",        default = True )
+    UI_colorLibrary         : bpy.props.BoolProperty   ( name = "Color Library",         default = True )
     UI_customTools          : bpy.props.BoolProperty   ( name = "Custom Tools",          default = True )
     UI_deltaVertexTool      : bpy.props.BoolProperty   ( name = "Delta → Vertex Color (Roof Snow Heap Tool)", default = True )
     UI_ActiveObjectName     : bpy.props.StringProperty ( name = "Active Object Name", default = "empty")
