@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_utc": "2026-01-03T08:28:38Z",
+  "generated_utc": "2026-01-03T21:14:29Z",
   "channels": {
     "stable": {
       "version": [
@@ -36,20 +36,14 @@
         0
       ],
       "download": {
-        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.17.9BETA/io_export_i3d_reworked.zip"
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.17.10BETA/io_export_i3d_reworked.zip"
       },
       "notes": [
-        "Added 4th Digit Build Number (Testing) build numbers",
-        "Fixed Blender 5 panel draw issues (no more restart required after install/update).",
-        "Removed all \u201cQuit Blender\u201d / restart-required logic from the add-on.",
-        "Fixed shader Load behavior and material dropdown syncing when selecting meshes (including old .blend files).",
-        "Added automatic conversion of legacy absolute customShader paths to portable $data/shaders (now allows Handing blend files off to co-modders without having to deal with fixing materials)",
-        "Improved update/rollback behavior: update checks now default ON and user update settings persist across reinstall/rollback.",
-        "Added a one-click button to enable Blender Allow Online Access when update checks are enabled but Blenders online internet access isnt."
+        "Added a Color Library Tool with 3 tabs of Libraries (User created/Giants Brands/Popular Color Library {colors are based off of hex colors from public documents so its possible some popular ones could be wrong but more likely they just dont look right in blenders lighting} )"
       ],
-      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.17.9BETA",
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.17.10BETA",
       "message": "A New Beta Build Is Available.",
-      "build": 9
+      "build": 10
     },
     "alpha": {
       "version": [
