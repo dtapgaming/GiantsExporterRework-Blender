@@ -93,7 +93,7 @@ Bug reports can be on this GitHub OR in your user prefferences you can select
 ****CHANGE LOGS**** 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 
-V 10.0.17.10 (10.12.2025) Build: ALPHA TESTING (opt in in user Preferences)
+V 10.0.17.10 (10.12.2025) Build: BETA TESTING (opt in in user Preferences)
 ------------------
 - Added a Color Library Tool (credit for the baseline and Idea goes to RMC|GamerDesigns) but has been improved upon and now has 3 tabs of Libraries (User created/Giants Brands/Popular Color Library {colors are based off of hex colors from public documents so its possible some popular ones could be wrong but more likely they just dont look right in blenders lighting} )
 
