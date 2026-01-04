@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generated_utc": "2026-01-03T21:14:29Z",
+  "generated_utc": "2026-01-04T05:40:34Z",
   "channels": {
     "stable": {
       "version": [
@@ -57,14 +57,30 @@
         0
       ],
       "download": {
-        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.17.10ALPHA/io_export_i3d_reworked.zip"
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.17.11ALPHA/io_export_i3d_reworked.zip"
       },
       "notes": [
-        "Added a Color Library Tool with 3 tabs of Libraries (User created/Giants Brands/Popular Color Library {colors are based off of hex colors from public documents so its possible some popular ones could be wrong but more likely they just dont look right in blenders lighting} )"
+        "Added \"Refresh Addon After Update\" button in the main panel header to disable + re-enable the add-on (timed), purge sys.modules entries for io_export_i3d_reworked, and force a full UI redraw so drag-and-drop updates can be applied without restarting Blender.",
+        "Added Modders Edge Tools & Cleanup utilities into the add-on (credit: RMC|GamerDesigns).",
+        "Added \"Material Tools\" collapsible in the Material tab containing:",
+        "Replace Material A -> B (credit: RMC|GamerDesigns)",
+        "Material Cleanup (credit: RMC|GamerDesigns)",
+        "Reorganized Material tab UI:",
+        "Added main \"Shader Setup\" collapsible for shader configuration UI",
+        "Refraction Map collapsible is now nested inside \"Shader Setup\"",
+        "Color Library sits below Refraction Map and above \"Material Tools\"",
+        "Color Library improvements (credit baseline/idea: RMC|GamerDesigns; expanded/customized for REWORKED):",
+        "3 tabs: My Color Library / Giants Library / Popular Color Library",
+        "Giants Library parses $data/shared/brandMaterialTemplates.xml (brand dropdown + color list)",
+        "Popular Color Library parses an XML shipped with the add-on (popular tractor/vehicle/platform palettes)",
+        "Selected panel shows GIANTS (sRGB), RGB (0-255), HEX, and copy buttons (Copy GIANTS (sRGB), Copy RGB, Copy HEX, Copy colorScale)",
+        "Added \"Set Emission (Black)\" button in Selected section",
+        "Import/Export sharing applies ONLY to My Color Library (Giants/Popular are not exportable)",
+        "User Preferences: Color Library list Name Column slider"
       ],
-      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.17.10ALPHA",
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.17.11ALPHA",
       "message": "A New Alpha Build Is Available. I do not suggest being in ALPHA.",
-      "build": 10
+      "build": 11
     }
   }
 }
