@@ -26,6 +26,7 @@ _MODULES = {
     '.vehicleArrayTool.vehicleArrayTool' : None,
     '.vertexColorTool': None,
     '.splinesTool':None,
+    '.moddersEdgeToolset': None,
     '.DeltaVertex': None
 }
 

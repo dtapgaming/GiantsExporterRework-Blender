@@ -32,7 +32,7 @@ bl_info = {
 # NOTE: Blender only supports a 3-part add-on version in bl_info['version'].
 # This build number is used ONLY by the updater to distinguish rebuilds
 # of the same semantic version (e.g. 10.0.18 build 1 vs build 2).
-I3D_REWORKED_BUILD = 10
+I3D_REWORKED_BUILD = 11
 
 
 global DCC_PLATFORM

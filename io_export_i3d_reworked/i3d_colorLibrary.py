@@ -42,6 +42,14 @@ import bpy
 from .helpers.pathHelper import getGamePath, resolveGiantsPath
 
 
+def _cl_get_prefs(context):
+    try:
+        return context.preferences.addons['io_export_i3d_reworked'].preferences
+    except Exception:
+        return None
+
+
+
 # -----------------------------------------------------------------------------
 # Persistent storage for "My Color Library"
 # -----------------------------------------------------------------------------
@@ -1017,32 +1025,86 @@ class I3D_CL_OT_AddPopularToMyLibrary(bpy.types.Operator):
 
 class I3D_CL_UL_MyColors(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        split = layout.split(factor=0.60)
+        prefs = _cl_get_prefs(context)
+        split = layout.split(factor=float(getattr(prefs, 'colorlib_name_ratio', 0.60)) if prefs else 0.60)
         split.prop(item, "name", text="", emboss=False)
         right = split.row(align=True)
         chip = right.row(align=True)
-        chip.scale_x = 0.6
         chip.prop(item, "color", text="")
-        right.label(text=_giants_srgb_text(item.color))
+        # NOTE: My Color Library already shows the color preview swatch.
+        # Do not also show the numeric color value in the list rows.
 
 
 class I3D_CL_UL_GiantsColors(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        split = layout.split(factor=0.78)
+        prefs = _cl_get_prefs(context)
+        split = layout.split(factor=float(getattr(prefs, 'colorlib_name_ratio', 0.78)) if prefs else 0.78)
         split.label(text=item.name)
         chip = split.row(align=True)
-        chip.scale_x = 0.6
         chip.prop(item, "color", text="")
 
 
 class I3D_CL_UL_PopularColors(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        split = layout.split(factor=0.78)
+        prefs = _cl_get_prefs(context)
+        split = layout.split(factor=float(getattr(prefs, 'colorlib_name_ratio', 0.78)) if prefs else 0.78)
         split.label(text=item.name)
         chip = split.row(align=True)
-        chip.scale_x = 0.6
         chip.prop(item, "color", text="")
 
+
+
+
+
+class I3D_CL_OT_SetEmissionBlack(bpy.types.Operator):
+    bl_idname = "i3d.cl_set_emission_black"
+    bl_label = "Set Emission (Black)"
+    bl_description = "Set Principled BSDF Emission Color to black (#000000FF) on the active material"
+    bl_options = {'UNDO'}
+
+    strength: bpy.props.FloatProperty(
+        name="Strength",
+        default=1.0,
+        min=0.0,
+        soft_max=50.0,
+    )  # type: ignore
+
+    def execute(self, context):
+        obj = context.active_object
+        if not obj:
+            self.report({'WARNING'}, "No active object.")
+            return {'CANCELLED'}
+
+        mat = getattr(obj, "active_material", None)
+        if not mat:
+            self.report({'WARNING'}, "No active material.")
+            return {'CANCELLED'}
+
+        if not getattr(mat, "use_nodes", False) or not getattr(mat, "node_tree", None):
+            self.report({'WARNING'}, "Material has no node tree.")
+            return {'CANCELLED'}
+
+        principled = None
+        for n in mat.node_tree.nodes:
+            if n.type == 'BSDF_PRINCIPLED':
+                principled = n
+                break
+
+        if not principled:
+            self.report({'WARNING'}, "No Principled BSDF node found.")
+            return {'CANCELLED'}
+
+        emis_col = principled.inputs.get("Emission Color") or principled.inputs.get("Emission")
+        emis_str = principled.inputs.get("Emission Strength")
+
+        if emis_col:
+            emis_col.default_value = (0.0, 0.0, 0.0, 1.0)
+
+        if emis_str:
+            emis_str.default_value = float(self.strength)
+
+        self.report({'INFO'}, f"Emission set to black on: {mat.name}")
+        return {'FINISHED'}
 
 
 
@@ -1111,6 +1173,7 @@ def draw_color_library(layout, context):
             op = copyrow2.operator("i3d.cl_copy_selected", text="Copy colorScale", icon='COPYDOWN')
             op.src = 'MY'
             op.kind = 'CSCALE'
+            copyrow2.operator("i3d.cl_set_emission_black", text="Set Emission (Black)", icon='SHADING_RENDERED')
         else:
             box.label(text="No color selected", icon='INFO')
 
@@ -1205,6 +1268,7 @@ def draw_color_library(layout, context):
             op = copyrow2.operator("i3d.cl_copy_selected", text="Copy colorScale", icon='COPYDOWN')
             op.src = 'GIANTS'
             op.kind = 'CSCALE'
+            copyrow2.operator("i3d.cl_set_emission_black", text="Set Emission (Black)", icon='SHADING_RENDERED')
         else:
             box.label(text="No GIANTS color selected", icon='INFO')
 
@@ -1280,6 +1344,7 @@ def draw_color_library(layout, context):
             op = copyrow2.operator("i3d.cl_copy_selected", text="Copy colorScale", icon='COPYDOWN')
             op.src = 'POPULAR'
             op.kind = 'CSCALE'
+            copyrow2.operator("i3d.cl_set_emission_black", text="Set Emission (Black)", icon='SHADING_RENDERED')
         else:
             box.label(text="No Popular color selected", icon='INFO')
 

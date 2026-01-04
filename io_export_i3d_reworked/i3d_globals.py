@@ -296,6 +296,16 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         options={'HIDDEN'},
     )
 
+
+    # --------------------------------------------------------------
+    # Color Library UI
+    # --------------------------------------------------------------
+    colorlib_name_ratio: bpy.props.FloatProperty(
+        name="Color List: Name Column",
+        description="Width of the name column in the Color Library lists (applies to My, GIANTS, and Popular tabs)",
+        default=0.78, min=0.40, max=0.90,
+    )
+
     def draw(self, context):
         layout = self.layout
 
@@ -361,9 +371,12 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         except Exception:
             pass
 
-
-
-
+        # --------------------------------------------------------------
+        # Color Library UI
+        # --------------------------------------------------------------
+        layout.separator()
+        layout.label(text="Color Library UI")
+        layout.prop(self, "colorlib_name_ratio", slider=True)
 def register():
     bpy.utils.register_class(I3D_OT_EnableOnlineAccess)
     bpy.utils.register_class(I3DExporterAddonPreferences)

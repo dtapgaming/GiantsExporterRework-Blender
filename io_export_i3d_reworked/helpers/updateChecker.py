@@ -2094,6 +2094,84 @@ def _download_zip_with_fallback(url_primary, url_secondary):
     raise RuntimeError("No download URL configured")
 
 
+# --------------------------------------------------------------
+# Full UI Redraw Helper (post-update)
+# --------------------------------------------------------------
+# After in-place updates (disable -> overwrite -> enable), Blender may keep some UI areas
+# visually "stale" until the user interacts or restarts. Tagging every area/region for redraw
+# (and nudging a window swap) refreshes the UI so newly-registered panels/buttons appear.
+
+def _force_full_ui_redraw_all_windows():
+    try:
+        wm = bpy.context.window_manager
+    except Exception:
+        wm = None
+
+    if not wm:
+        return
+
+    try:
+        windows = list(getattr(wm, "windows", []) or [])
+    except Exception:
+        windows = []
+
+    for win in windows:
+        scr = getattr(win, "screen", None)
+        if not scr:
+            continue
+
+        for area in getattr(scr, "areas", []) or []:
+            try:
+                area.tag_redraw()
+            except Exception:
+                pass
+
+            for region in getattr(area, "regions", []) or []:
+                try:
+                    region.tag_redraw()
+                except Exception:
+                    pass
+
+    # Extra nudge (safe best-effort): forces a window swap draw pass.
+    try:
+        bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+    except Exception:
+        pass
+
+
+def _schedule_full_ui_redraw_all_windows(iterations=5, first_interval=0.2, step_interval=0.15):
+    try:
+        remaining = int(iterations)
+    except Exception:
+        remaining = 3
+
+    state = {"remaining": max(1, remaining)}
+
+    def _timer():
+        try:
+            _force_full_ui_redraw_all_windows()
+        except Exception:
+            pass
+
+        state["remaining"] -= 1
+        if state["remaining"] <= 0:
+            return None
+        try:
+            return float(step_interval)
+        except Exception:
+            return 0.15
+
+    try:
+        bpy.app.timers.register(_timer, first_interval=float(first_interval))
+    except Exception:
+        # Fallback: at least do a single redraw attempt.
+        try:
+            _force_full_ui_redraw_all_windows()
+        except Exception:
+            pass
+
+
+
 class I3D_OT_PerformUpdate(bpy.types.Operator):
     bl_idname = "i3d.perform_update"
     bl_label = "Update Add-on"
@@ -2269,6 +2347,12 @@ class I3D_OT_PerformUpdate(bpy.types.Operator):
 
                     try:
                         _addon_utils.enable("io_export_i3d_reworked", default_set=True)
+                    except Exception:
+                        pass
+
+                    # Force a full UI redraw so newly-added panels/tools appear without requiring a Blender restart.
+                    try:
+                        _schedule_full_ui_redraw_all_windows(iterations=6, first_interval=0.25, step_interval=0.15)
                     except Exception:
                         pass
 

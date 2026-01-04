@@ -1622,14 +1622,142 @@ class I3D_OT_MenuExport( bpy.types.Operator ):
             pass
         return {'FINISHED'}
 
+
+
+#-------------------------------------------------------------------------------
+#   Refresh Add-on After Update (Drag-and-drop friendly)
+#-------------------------------------------------------------------------------
+class I3D_OT_RefreshAddonAfterUpdate(bpy.types.Operator):
+    """Disable + purge module cache + re-enable the add-on so Blender loads updated code from disk."""
+
+    bl_idname = "i3d.refresh_addon_after_update"
+    bl_label = "Refresh Addon After Update"
+    bl_description = (
+        "Disable and re-enable the add-on to load updated code from disk (no Blender restart required). "
+        "Useful after drag-and-drop installing a new ZIP while the add-on is enabled."
+    )
+
+    _in_progress = False
+
+    def execute(self, context):
+        if I3D_OT_RefreshAddonAfterUpdate._in_progress:
+            try:
+                self.report({'WARNING'}, "Refresh already in progress")
+            except Exception:
+                pass
+            return {'CANCELLED'}
+
+        I3D_OT_RefreshAddonAfterUpdate._in_progress = True
+
+        addon_pkg = "io_export_i3d_reworked"
+
+        def _tag_redraw_all_windows():
+            try:
+                wm = bpy.context.window_manager
+            except Exception:
+                wm = None
+
+            if not wm:
+                return
+
+            try:
+                windows = list(getattr(wm, "windows", []) or [])
+            except Exception:
+                windows = []
+
+            for win in windows:
+                scr = getattr(win, "screen", None)
+                if not scr:
+                    continue
+
+                for area in getattr(scr, "areas", []) or []:
+                    try:
+                        area.tag_redraw()
+                    except Exception:
+                        pass
+
+                    for region in getattr(area, "regions", []) or []:
+                        try:
+                            region.tag_redraw()
+                        except Exception:
+                            pass
+
+            try:
+                bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+            except Exception:
+                pass
+
+        def _phase_enable():
+            import sys
+            import addon_utils
+
+            # Purge cached modules so enable() imports fresh code from disk.
+            try:
+                for mod_name in list(sys.modules.keys()):
+                    if mod_name == addon_pkg or mod_name.startswith(addon_pkg + "."):
+                        sys.modules.pop(mod_name, None)
+            except Exception as e:
+                print(f"[I3D Refresh] Module purge failed: {e}")
+
+            # Re-enable add-on.
+            try:
+                addon_utils.enable(addon_pkg, default_set=True)
+                print("[I3D Refresh] Add-on enabled")
+            except Exception as e:
+                print(f"[I3D Refresh] Enable failed: {e}")
+
+            # Force redraw a few times to ensure UI panels refresh.
+            try:
+                for i in range(6):
+                    bpy.app.timers.register(_tag_redraw_all_windows, first_interval=0.10 + (i * 0.10))
+            except Exception:
+                pass
+
+            I3D_OT_RefreshAddonAfterUpdate._in_progress = False
+            return None
+
+        def _phase_disable():
+            import addon_utils
+
+            # Disable first (unregisters classes cleanly).
+            try:
+                addon_utils.disable(addon_pkg, default_set=True)
+                print("[I3D Refresh] Add-on disabled")
+            except Exception as e:
+                print(f"[I3D Refresh] Disable failed: {e}")
+
+            # Then enable on a short timer.
+            try:
+                bpy.app.timers.register(_phase_enable, first_interval=0.35)
+            except Exception:
+                # If timers fail for any reason, fall back to immediate enable attempt.
+                _phase_enable()
+
+            return None
+
+        # Schedule disable *after* this operator returns, to avoid RNA invalidation crashes.
+        try:
+            bpy.app.timers.register(_phase_disable, first_interval=0.10)
+        except Exception as e:
+            print(f"[I3D Refresh] Could not schedule refresh: {e}")
+            I3D_OT_RefreshAddonAfterUpdate._in_progress = False
+            return {'CANCELLED'}
+
+        try:
+            self.report({'INFO'}, "Refreshing add-on…")
+        except Exception:
+            pass
+
+        return {'FINISHED'}
+
 class I3D_PT_PanelExport( bpy.types.Panel ):
     """ GUI Panel for the GIANTS I3D Exporter visible in the 3D Viewport """
 
     bl_idname       = "I3D_PT_PanelExport"
-    bl_label        = "GIANTS I3D Exporter"
+    bl_label        = "GIANTS I3D Exporter REWORKED"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "GIANTS I3D Exporter"
+    bl_category = "GIANTS I3D Exporter REWORKED"
 
 
     def draw( self, context ):
@@ -1690,6 +1818,11 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
             # Placeholder UI elements when there's no active object
             first_row_left.label(text="N/A")
             first_row_right.label(text="N/A")
+
+        # Refresh button (useful after drag-and-drop updating the ZIP while the add-on is enabled)
+        refresh_row = top_box.row()
+        refresh_row.scale_y = 1.1
+        refresh_row.operator("i3d.refresh_addon_after_update", text="Refresh Addon After Update", icon='FILE_REFRESH')
 
 
 
@@ -2198,8 +2331,159 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                 if dirf.isWindows():
 
                     row.operator("i3d.panelsetgameshader", icon='ZOOM_ALL')
+            # Shader Setup (collapsible)
+            ss_box = layout.box()
+            ss_row = ss_box.row()
+            ss_row.prop(   context.scene.I3D_UIexportSettings,
+                        "UI_shaderSetup",
+                        text = "Shader Setup",
+                        icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_shaderSetup else 'TRIA_RIGHT',
+                        icon_only = False,
+                        emboss = False )
 
-            # Color Library (below Shaders Folder box)
+            if context.scene.I3D_UIexportSettings.UI_shaderSetup:
+                # Selected material dropdown.
+                box = ss_box.box()
+                row = box.row()
+                split = row.split(factor = 0.8)
+                row = split.row()
+                row.prop(context.scene.I3D_UIexportSettings, "i3D_selectedMaterialEnum")
+                row = split.row()
+                row.operator("i3d.openmaterialtemplateswindow")
+
+                # Shader and variation dropdowns.
+                box = ss_box.box()
+                row = box.row()
+                row.prop(context.scene.I3D_UIexportSettings,"i3D_shaderEnum")
+                row = box.row()
+                try:
+                    row.prop(context.scene.I3D_UIshaderVariation, "i3D_shaderVariationEnum")
+                except:
+                    row.prop(context.scene.I3D_UIexportSettings, "i3D_shaderVariationEnum")
+
+                # Custom parameters and textures.
+                box = ss_box.box()
+                row = box.row()
+                row.label(text="Parameters")
+
+                global g_dynamicGUIClsDict
+                if "parameters" in g_dynamicGUIClsDict:
+                    enableText = False
+                    for k,i in g_dynamicGUIClsDict["parameters"].__annotations__.items():
+                        if k.endswith("Bool"):
+                            row = box.row()
+                            row.prop(context.scene.I3D_UIShaderParameters,k,text="")
+                            if (getattr(context.scene.I3D_UIShaderParameters, k)):
+                                enableText = True
+                            else:
+                                enableText = False
+                        else:
+                            if(k.endswith("_0")):
+                                row.label(text=k.strip("_0"))
+                            row_items = row.row()
+                            row_items.enabled = enableText
+                            row_items.prop(context.scene.I3D_UIShaderParameters,k,text= "")
+
+                box = ss_box.box()
+                row = box.row()
+                row.label(text="Textures")
+                if "textures" in g_dynamicGUIClsDict:
+                    enableText = False
+                    for k,i in g_dynamicGUIClsDict["textures"].__annotations__.items():
+                        if k.endswith("Bool"):
+                            row = box.row()
+                            row.prop(context.scene.I3D_UIShaderTextures,k,text="")
+                            if (getattr(context.scene.I3D_UIShaderTextures, k)):
+                                enableText = True
+                            else:
+                                enableText = False
+                        else:
+                            row_items = row.row()
+                            row_items.enabled = enableText
+                            row_items.prop(context.scene.I3D_UIShaderTextures,k)
+
+                for dynamicGUIClsName, dynamicGUICls in g_dynamicGUIClsDict.items():
+                    if dynamicGUIClsName == "textures" or dynamicGUIClsName == "parameters":
+                        continue
+                    # Otherwise we assume that its a template parameter
+                    clssName = 'I3D_UITemplateParameters_'+dynamicGUIClsName
+
+                    box = ss_box.box()
+                    row = box.row()
+                    row.label(text=dynamicGUIClsName) # TODO(jdellsperger): brandColor instead of Brand Color...
+
+                    try:
+                        dataClass = getattr(context.scene, clssName)
+                    except Exception as e:
+                        print("Could not add class {} to scene".format(clssName))
+                        print(e)
+                        continue
+                    else:
+                        enableText = False
+                        for k,i in dynamicGUICls.__annotations__.items():
+                            if k.endswith("Bool"):
+                                row = box.row()
+                                row.prop(dataClass, k,text="")
+                                if (getattr(dataClass, k)):
+                                    enableText = True
+                                else:
+                                    enableText = False
+                            else:
+                                if k.endswith("_0"):
+                                    split = row.split(factor=0.195)
+                                    c = split.column()
+                                    c.label(text=k[:-2])
+                                    row = split.split()
+                                elif not k.endswith("_1") and not k.endswith("_2") and not k.endswith("_3") and not k.startswith("templatedParameterTemplateMenu_"):
+                                    if "name" in i.keywords:
+                                        # This is a template dropdown
+                                        split = row.split(factor=0.195)
+                                        c = split.column()
+                                        c.label(text=i.keywords["name"])
+                                        row = split.split()
+                                    else:
+                                        split = row.split(factor=0.195)
+                                        c = split.column()
+                                        c.label(text=k)
+                                        row = split.split()
+                                row_items = row.row()
+                                row_items.enabled = enableText
+                                row_items.prop(dataClass, k, text = "")
+
+                box = ss_box.box()
+                row = box.row()
+                row.prop(context.scene.I3D_UIexportSettings,'i3D_shadingRate')
+                row = box.row()
+                split = row.split(factor = 0.7)
+                row = split.row()
+                row.prop(context.scene.I3D_UIexportSettings, "i3D_materialSlotName")
+                row = split.row()
+                row.operator("i3d.usematerialnameasslotname")
+                row = box.row()
+                row.prop(context.scene.I3D_UIexportSettings,'i3D_alphaBlending')
+
+                box = ss_box.box()
+                row = box.row()
+                row.prop(   context.scene.I3D_UIexportSettings,
+                            "UI_refractionMap",
+                            text = "Refraction Map",
+                            icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_refractionMap else 'TRIA_RIGHT',
+                            icon_only = False,
+                            emboss = False )
+                if context.scene.I3D_UIexportSettings.UI_refractionMap:
+                    row = box.row()
+                    row.prop(context.scene.I3D_UIexportSettings, 'i3D_refractionMap')
+                    row = box.row()
+                    row.prop(context.scene.I3D_UIexportSettings, 'i3D_refractionMapLightAbsorbance')
+                    row.enabled = context.scene.I3D_UIexportSettings.i3D_refractionMap
+                    row = box.row()
+                    row.prop(context.scene.I3D_UIexportSettings, 'i3D_refractionMapBumpScale')
+                    row.enabled = context.scene.I3D_UIexportSettings.i3D_refractionMap
+                    row = box.row()
+                    row.prop(context.scene.I3D_UIexportSettings, 'i3D_refractionMapWithSSRData')
+                    row.enabled = context.scene.I3D_UIexportSettings.i3D_refractionMap
+
+            # Color Library (below Refraction Map box)
             cl_box = layout.box()
             cl_row = cl_box.row()
             cl_row.prop(
@@ -2216,146 +2500,72 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                 except Exception as e:
                     print(f"[I3D Color Library] draw failed: {e}")
 
-            # Selected material dropdown.
-            box = layout.box()
-            row = box.row()
-            split = row.split(factor = 0.8)
-            row = split.row()
-            row.prop(context.scene.I3D_UIexportSettings, "i3D_selectedMaterialEnum")
-            row = split.row()
-            row.operator("i3d.openmaterialtemplateswindow")
+            # Material Tools (GamerDesigns / Modders Edge)
+            mat_tools_outer_box = layout.box()
+            row = mat_tools_outer_box.row()
+            row.prop(
+                context.scene.I3D_UIexportSettings,
+                "UI_meMaterialToolsMain",
+                text="Material Tools",
+                icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_meMaterialToolsMain else 'TRIA_RIGHT',
+                icon_only=False,
+                emboss=False
+            )
 
-            # Shader and variation dropdowns.
-            box = layout.box()
-            row = box.row()
-            row.prop(context.scene.I3D_UIexportSettings,"i3D_shaderEnum")
-            row = box.row()
-            try:
-                row.prop(context.scene.I3D_UIshaderVariation, "i3D_shaderVariationEnum")
-            except:
-                row.prop(context.scene.I3D_UIexportSettings, "i3D_shaderVariationEnum")
+            if context.scene.I3D_UIexportSettings.UI_meMaterialToolsMain:
+                mat_tools_box = mat_tools_outer_box.box()
 
-            # Custom parameters and textures.
-            box = layout.box()
-            row = box.row()
-            row.label(text="Parameters")
+                # -------------------------
+                # Cleanup: Material Cleanup
+                # -------------------------
+                me_mat_outer_box = mat_tools_box.box()
+                row = me_mat_outer_box.row()
+                row.prop(
+                    context.scene.I3D_UIexportSettings,
+                    "UI_meMaterialCleanup",
+                    text="Material Cleanup",
+                    icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_meMaterialCleanup else 'TRIA_RIGHT',
+                    icon_only=False,
+                    emboss=False
+                )
 
-            global g_dynamicGUIClsDict
-            if "parameters" in g_dynamicGUIClsDict:
-                enableText = False
-                for k,i in g_dynamicGUIClsDict["parameters"].__annotations__.items():
-                    if k.endswith("Bool"):
-                        row = box.row()
-                        row.prop(context.scene.I3D_UIShaderParameters,k,text="")
-                        if (getattr(context.scene.I3D_UIShaderParameters, k)):
-                            enableText = True
-                        else:
-                            enableText = False
-                    else:
-                        if(k.endswith("_0")):
-                            row.label(text=k.strip("_0"))
-                        row_items = row.row()
-                        row_items.enabled = enableText
-                        row_items.prop(context.scene.I3D_UIShaderParameters,k,text= "")
+                if context.scene.I3D_UIexportSettings.UI_meMaterialCleanup:
+                    me_mat_box = me_mat_outer_box.box()
+                    row = me_mat_box.row(align=True); row.scale_y = 1.1
+                    row.operator("i3d.me_remove_unused_materials", text="Remove Unused Materials", icon="MATERIAL")
 
-            box = layout.box()
-            row = box.row()
-            row.label(text="Textures")
-            if "textures" in g_dynamicGUIClsDict:
-                enableText = False
-                for k,i in g_dynamicGUIClsDict["textures"].__annotations__.items():
-                    if k.endswith("Bool"):
-                        row = box.row()
-                        row.prop(context.scene.I3D_UIShaderTextures,k,text="")
-                        if (getattr(context.scene.I3D_UIShaderTextures, k)):
-                            enableText = True
-                        else:
-                            enableText = False
-                    else:
-                        row_items = row.row()
-                        row_items.enabled = enableText
-                        row_items.prop(context.scene.I3D_UIShaderTextures,k)
 
-            for dynamicGUIClsName, dynamicGUICls in g_dynamicGUIClsDict.items():
-                if dynamicGUIClsName == "textures" or dynamicGUIClsName == "parameters":
-                    continue
-                # Otherwise we assume that its a template parameter
-                clssName = 'I3D_UITemplateParameters_'+dynamicGUIClsName
+                # -------------------------
+                # Tools: Replace Material A → B
+                # -------------------------
+                me_replace_outer_box = mat_tools_box.box()
+                row = me_replace_outer_box.row()
+                row.prop(
+                    context.scene.I3D_UIexportSettings,
+                    "UI_meMaterialReplace",
+                    text="Replace Material A → B",
+                    icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_meMaterialReplace else 'TRIA_RIGHT',
+                    icon_only=False,
+                    emboss=False
+                )
 
-                box = layout.box()
-                row = box.row()
-                row.label(text=dynamicGUIClsName) # TODO(jdellsperger): brandColor instead of Brand Color...
+                if context.scene.I3D_UIexportSettings.UI_meMaterialReplace:
+                    me_replace_box = me_replace_outer_box.box()
+                    col = me_replace_box.column(align=True)
 
-                try:
-                    dataClass = getattr(context.scene, clssName)
-                except Exception as e:
-                    print("Could not add class {} to scene".format(clssName))
-                    print(e)
-                    continue
-                else:
-                    enableText = False
-                    for k,i in dynamicGUICls.__annotations__.items():
-                        if k.endswith("Bool"):
-                            row = box.row()
-                            row.prop(dataClass, k,text="")
-                            if (getattr(dataClass, k)):
-                                enableText = True
-                            else:
-                                enableText = False
-                        else:
-                            if k.endswith("_0"):
-                                split = row.split(factor=0.195)
-                                c = split.column()
-                                c.label(text=k[:-2])
-                                row = split.split()
-                            elif not k.endswith("_1") and not k.endswith("_2") and not k.endswith("_3") and not k.startswith("templatedParameterTemplateMenu_"):
-                                if "name" in i.keywords:
-                                    # This is a template dropdown
-                                    split = row.split(factor=0.195)
-                                    c = split.column()
-                                    c.label(text=i.keywords["name"])
-                                    row = split.split()
-                                else:
-                                    split = row.split(factor=0.195)
-                                    c = split.column()
-                                    c.label(text=k)
-                                    row = split.split()
-                            row_items = row.row()
-                            row_items.enabled = enableText
-                            row_items.prop(dataClass, k, text = "")
+                    col.prop(context.scene.I3D_UIexportSettings, "me_replace_scope", text="Scope")
 
-            box = layout.box()
-            row = box.row()
-            row.prop(context.scene.I3D_UIexportSettings,'i3D_shadingRate')
-            row = box.row()
-            split = row.split(factor = 0.7)
-            row = split.row()
-            row.prop(context.scene.I3D_UIexportSettings, "i3D_materialSlotName")
-            row = split.row()
-            row.operator("i3d.usematerialnameasslotname")
-            row = box.row()
-            row.prop(context.scene.I3D_UIexportSettings,'i3D_alphaBlending')
+                    row = col.row(align=True)
+                    row.prop(context.scene.I3D_UIexportSettings, "me_replace_from", text="From")
+                    row.prop(context.scene.I3D_UIexportSettings, "me_replace_to", text="To")
 
-            box = layout.box()
-            row = box.row()
-            row.prop(   context.scene.I3D_UIexportSettings,
-                        "UI_refractionMap",
-                        text = "Refraction Map",
-                        icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_refractionMap else 'TRIA_RIGHT',
-                        icon_only = False,
-                        emboss = False )
-            if context.scene.I3D_UIexportSettings.UI_refractionMap:
-                row = box.row()
-                row.prop(context.scene.I3D_UIexportSettings, 'i3D_refractionMap')
-                row = box.row()
-                row.prop(context.scene.I3D_UIexportSettings, 'i3D_refractionMapLightAbsorbance')
-                row.enabled = context.scene.I3D_UIexportSettings.i3D_refractionMap
-                row = box.row()
-                row.prop(context.scene.I3D_UIexportSettings, 'i3D_refractionMapBumpScale')
-                row.enabled = context.scene.I3D_UIexportSettings.i3D_refractionMap
-                row = box.row()
-                row.prop(context.scene.I3D_UIexportSettings, 'i3D_refractionMapWithSSRData')
-                row.enabled = context.scene.I3D_UIexportSettings.i3D_refractionMap
+                    col.operator("i3d.me_material_replace_batch", text="Replace Material A → B", icon='FILE_REFRESH')
+
+                mat_tools_box.separator()
+                row = mat_tools_box.row(); row.alignment = 'CENTER'
+                row.label(text="License MIT")
+                row = mat_tools_box.row(); row.alignment = 'CENTER'
+                row.label(text="Made by GamerDesigns")
 
             box = layout.box()
             row = box.row()
@@ -2477,6 +2687,218 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                 except:
                     pass
             #-----------------------------------------
+            # Modders Edge Toolset (Tools + Cleanup)
+            # Credit: GamerDesigns (MIT License)
+            #-----------------------------------------
+            me_tools_outer_box = layout.box()
+            row = me_tools_outer_box.row()
+            row.prop(
+                context.scene.I3D_UIexportSettings,
+                "UI_meToolsMain",
+                text="Modders Edge Tools",
+                icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_meToolsMain else 'TRIA_RIGHT',
+                icon_only=False,
+                emboss=False
+            )
+
+            if context.scene.I3D_UIexportSettings.UI_meToolsMain:
+                me_tools_box = me_tools_outer_box.box()
+                mode = context.mode
+
+
+                # -------------------------
+                # Cleanup: Vertex / Geometry Tools
+                # -------------------------
+                me_vtx_outer_box = me_tools_box.box()
+                row = me_vtx_outer_box.row()
+                row.prop(
+                    context.scene.I3D_UIexportSettings,
+                    "UI_meVertexGeoTools",
+                    text="Vertex / Geometry Tools",
+                    icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_meVertexGeoTools else 'TRIA_RIGHT',
+                    icon_only=False,
+                    emboss=False
+                )
+
+                if context.scene.I3D_UIexportSettings.UI_meVertexGeoTools:
+                    me_vtx_box = me_vtx_outer_box.box()
+                    row = me_vtx_box.row(align=True)
+                    row.prop(context.scene.I3D_UIexportSettings, "i3D_ME_mergeDistance", text="Merge")
+                    row.prop(context.scene.I3D_UIexportSettings, "i3D_ME_convertToQuads", text="To Quads")
+
+                    row = me_vtx_box.row(align=True); row.scale_y = 1.1
+                    op = row.operator("i3d.me_vertex_cleanup", text="Vertex Cleanup", icon="VERTEXSEL")
+                    op.merge_distance = context.scene.I3D_UIexportSettings.i3D_ME_mergeDistance
+
+                    op = row.operator("i3d.me_better_tris", text="Better Tris / Quads", icon="MESH_DATA")
+                    op.convert_to_quads = context.scene.I3D_UIexportSettings.i3D_ME_convertToQuads
+
+                # -------------------------
+                # Tools: Cursor & Origin
+                # -------------------------
+                me_cursor_outer_box = me_tools_box.box()
+                row = me_cursor_outer_box.row()
+                row.prop(
+                    context.scene.I3D_UIexportSettings,
+                    "UI_meCursorOrigin",
+                    text="Cursor & Origin",
+                    icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_meCursorOrigin else 'TRIA_RIGHT',
+                    icon_only=False,
+                    emboss=False
+                )
+
+                if context.scene.I3D_UIexportSettings.UI_meCursorOrigin:
+                    me_cursor_box = me_cursor_outer_box.box()
+                    col = me_cursor_box.column(align=True)
+
+                    row = col.row(align=True); row.scale_y = 1.1
+                    row.operator("view3d.snap_cursor_to_selected", text="Cursor to Selected", icon="RESTRICT_SELECT_OFF")
+                    row.operator("view3d.snap_cursor_to_center", text="Cursor to World Origin", icon="CURSOR")
+                    row.operator("view3d.snap_selected_to_cursor", text="Selection to Cursor", icon="PIVOT_CURSOR").use_offset = False
+
+                    row = col.row(align=True); row.scale_y = 1.1
+                    op = row.operator("object.origin_set", text="Origin to 3D Cursor", icon="PIVOT_CURSOR")
+                    op.type = 'ORIGIN_CURSOR'
+                    op = row.operator("object.origin_set", text="Origin to Center of Mass", icon="OBJECT_ORIGIN")
+                    op.type = 'ORIGIN_CENTER_OF_MASS'
+
+                # -------------------------
+                # Tools: Add Objects
+                # -------------------------
+                me_add_outer_box = me_tools_box.box()
+                row = me_add_outer_box.row()
+                row.prop(
+                    context.scene.I3D_UIexportSettings,
+                    "UI_meAddObjects",
+                    text="Add Objects",
+                    icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_meAddObjects else 'TRIA_RIGHT',
+                    icon_only=False,
+                    emboss=False
+                )
+
+                if context.scene.I3D_UIexportSettings.UI_meAddObjects:
+                    me_add_box = me_add_outer_box.box()
+                    col = me_add_box.column(align=True)
+
+                    if mode != 'OBJECT':
+                        col.enabled = False
+                        col.label(text="Switch to Object Mode to add objects here.")
+                    else:
+                        row = col.row(align=True); row.scale_y = 1.1
+                        row.operator("mesh.primitive_cube_add", text="Cube", icon="CUBE")
+                        row.operator("mesh.primitive_plane_add", text="Plane", icon="MESH_PLANE")
+                        row.operator("mesh.primitive_uv_sphere_add", text="UV Sphere", icon="SPHERE")
+
+                        row = col.row(align=True); row.scale_y = 1.1
+                        row.operator("mesh.primitive_cylinder_add", text="Cylinder", icon="MESH_CYLINDER")
+                        op = row.operator("object.light_add", text="Light (Point)", icon="LIGHT")
+                        op.type = 'POINT'
+
+                        col.operator("object.empty_add", text="Empty (Plain Axes)", icon="EMPTY_AXIS").type = 'PLAIN_AXES'
+
+                # -------------------------
+                # Tools: Apply Transforms
+                # -------------------------
+                me_apply_outer_box = me_tools_box.box()
+                row = me_apply_outer_box.row()
+                row.prop(
+                    context.scene.I3D_UIexportSettings,
+                    "UI_meApplyTransforms",
+                    text="Apply Transforms",
+                    icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_meApplyTransforms else 'TRIA_RIGHT',
+                    icon_only=False,
+                    emboss=False
+                )
+
+                if context.scene.I3D_UIexportSettings.UI_meApplyTransforms:
+                    me_apply_box = me_apply_outer_box.box()
+                    col = me_apply_box.column(align=True)
+
+                    row = col.row(align=True); row.scale_y = 1.1
+                    op = row.operator("object.transform_apply", text="Apply Rotation & Scale", icon="FILE_REFRESH")
+                    op.location = False; op.rotation = True; op.scale = True
+
+                    row = col.row(align=True); row.scale_y = 1.1
+                    op = row.operator("object.transform_apply", text="Apply Scale", icon="DRIVER_DISTANCE")
+                    op.location = False; op.rotation = False; op.scale = True
+
+                # -------------------------
+                # Tools: Mesh Cleanup (Edit Mode)
+                # -------------------------
+                me_meshclean_outer_box = me_tools_box.box()
+                row = me_meshclean_outer_box.row()
+                row.prop(
+                    context.scene.I3D_UIexportSettings,
+                    "UI_meMeshCleanup",
+                    text="Mesh Cleanup (Edit Mode)",
+                    icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_meMeshCleanup else 'TRIA_RIGHT',
+                    icon_only=False,
+                    emboss=False
+                )
+
+                if context.scene.I3D_UIexportSettings.UI_meMeshCleanup:
+                    me_meshclean_box = me_meshclean_outer_box.box()
+                    col = me_meshclean_box.column(align=True)
+
+                    if mode == 'EDIT_MESH':
+                        row = col.row(align=True); row.scale_y = 1.1
+                        row.operator("mesh.delete_loose", text="Delete Loose", icon="TRASH")
+                        row.operator("mesh.decimate", text="Decimate Geometry", icon="MOD_DECIM")
+
+                        row = col.row(align=True); row.scale_y = 1.1
+                        row.operator("mesh.dissolve_degenerate", text="Degenerate Dissolve", icon="X")
+                        row.operator("mesh.dissolve_limited", text="Limited Dissolve", icon="FACESEL")
+
+                        row = col.row(align=True); row.scale_y = 1.1
+                        row.operator("mesh.fill_holes", text="Fill Holes", icon="MOD_BUILD")
+                        row.operator("mesh.tris_convert_to_quads", text="Tris to Quads", icon="MOD_MESHDEFORM")
+
+                        col.operator("mesh.normals_make_consistent", text="Flip Normals", icon="LOOP_BACK").inside = False
+                    else:
+                        col.enabled = False
+                        col.label(text="Switch to Edit Mode to access mesh cleanup tools.")
+
+                # -------------------------
+                # Tools: UV Map
+                # -------------------------
+                me_uv_outer_box = me_tools_box.box()
+                row = me_uv_outer_box.row()
+                row.prop(
+                    context.scene.I3D_UIexportSettings,
+                    "UI_meUVMap",
+                    text="UV Map",
+                    icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_meUVMap else 'TRIA_RIGHT',
+                    icon_only=False,
+                    emboss=False
+                )
+
+                if context.scene.I3D_UIexportSettings.UI_meUVMap:
+                    me_uv_box = me_uv_outer_box.box()
+                    col = me_uv_box.column(align=True)
+
+                    if mode == 'EDIT_MESH':
+                                            row = col.row(align=True)
+                                            row.prop(context.scene.I3D_UIexportSettings, "i3D_ME_uvMargin", text="Margin")
+                                            row.prop(context.scene.I3D_UIexportSettings, "i3D_ME_uvIslandMargin", text="Island")
+
+                                            row = col.row(align=True); row.scale_y = 1.1
+                                            op = row.operator("i3d.me_uv_unwrap_angle_based", text="Unwrap (Angle Based)", icon="UV")
+                                            op.margin = context.scene.I3D_UIexportSettings.i3D_ME_uvMargin
+
+                                            op = row.operator("i3d.me_uv_smart_project_005", text="Smart UV Project (0.005)", icon="UV")
+                                            op.island_margin = context.scene.I3D_UIexportSettings.i3D_ME_uvIslandMargin
+                    else:
+                        col.enabled = False
+                        col.label(text="Switch to Edit Mode on a mesh to access UV tools.")
+
+
+                me_tools_box.separator()
+                row = me_tools_box.row(); row.alignment = 'CENTER'
+                row.label(text="License MIT")
+                row = me_tools_box.row(); row.alignment = 'CENTER'
+                row.label(text="Made by GamerDesigns")
+
+#-----------------------------------------
 
         # row = layout.row( )
         # row.operator( "i3d.panelexport_buttonclose", icon = 'X' )
@@ -2615,7 +3037,7 @@ class I3D_PT_MaterialTemplates(bpy.types.Panel):
     bl_label = "GIANTS Material Templates Library"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "GIANTS I3D Exporter"
+    bl_category = "GIANTS I3D Exporter REWORKED"
 
     def renderCategoryMenuEntry(self, context, parentBox, category, categoryTitle, categoryOpen, childList):
         hasChildren = len(childList) > 2 # expanded, thumbnails
@@ -3906,6 +4328,17 @@ class I3D_OT_PanelMaterial_UseMaterialNameAsSlotNameButton(bpy.types.Operator):
 #   Init Scene PropertyGroups
 #-------------------------------------------------------------------------------
 
+
+def _i3d_enum_all_materials(self, context):
+    items = [("NONE", "None", "")]
+    try:
+        for m in bpy.data.materials:
+            items.append((m.name, m.name, ""))
+    except Exception:
+        pass
+    return items
+
+
 class I3D_UIexportSettings( bpy.types.PropertyGroup ):
     """ Definition of all static GUI element properties """
 
@@ -3935,9 +4368,69 @@ class I3D_UIexportSettings( bpy.types.PropertyGroup ):
     UI_lightAttributes      : bpy.props.BoolProperty   ( name = "Light Attributes",      default = False )
     UI_ddsExportOptions     : bpy.props.BoolProperty   ( name = "DDS Export Options",    default = False )
     UI_shaderFolder         : bpy.props.BoolProperty   ( name = "Shaders Folder",        default = True )
+    UI_shaderSetup          : bpy.props.BoolProperty   ( name = "Shader Setup",         default = True )
     UI_colorLibrary         : bpy.props.BoolProperty   ( name = "Color Library",         default = True )
     UI_customTools          : bpy.props.BoolProperty   ( name = "Custom Tools",          default = True )
     UI_deltaVertexTool      : bpy.props.BoolProperty   ( name = "Delta → Vertex Color (Roof Snow Heap Tool)", default = True )
+    UI_meToolsMain          : bpy.props.BoolProperty   ( name = "Modders Edge Tools",       default = False )
+    UI_meMaterialToolsMain  : bpy.props.BoolProperty   ( name = "Material Tools",         default = False )
+    UI_meMaterialCleanup     : bpy.props.BoolProperty   ( name = "Material Cleanup",       default = False )
+    UI_meMaterialReplace     : bpy.props.BoolProperty   ( name = "Replace Material A → B",   default = False )
+
+    me_replace_scope          : bpy.props.EnumProperty(
+        name="Scope",
+        items=[
+            ("SELECTED", "Selected Objects", ""),
+            ("ALL", "All Objects", ""),
+        ],
+        default="SELECTED",
+    )
+
+    me_replace_from           : bpy.props.EnumProperty(
+        name="From",
+        items=_i3d_enum_all_materials,
+    )
+
+    me_replace_to             : bpy.props.EnumProperty(
+        name="To",
+        items=_i3d_enum_all_materials,
+    )
+    UI_meVertexGeoTools      : bpy.props.BoolProperty   ( name = "Vertex / Geometry Tools", default = False )
+    UI_meCursorOrigin        : bpy.props.BoolProperty   ( name = "Cursor & Origin",        default = False )
+    UI_meAddObjects          : bpy.props.BoolProperty   ( name = "Add Objects",            default = False )
+    UI_meApplyTransforms     : bpy.props.BoolProperty   ( name = "Apply Transforms",       default = False )
+    UI_meMeshCleanup         : bpy.props.BoolProperty   ( name = "Mesh Cleanup (Edit Mode)", default = False )
+    UI_meUVMap               : bpy.props.BoolProperty   ( name = "UV Map",                default = False )
+    i3D_ME_mergeDistance : bpy.props.FloatProperty(
+        name="Merge Distance",
+        description="Merge distance for Vertex Cleanup (GamerDesigns toolset).",
+        default=0.0001,
+        min=0.0,
+        max=1.0
+    )
+    i3D_ME_convertToQuads : bpy.props.BoolProperty(
+        name="Convert to Quads",
+        description="Convert tris to quads where possible (GamerDesigns toolset).",
+        default=True
+    )
+    i3D_ME_uvMargin : bpy.props.FloatProperty(
+        name="UV Margin",
+        description="UV island margin for Angle Based Unwrap (GamerDesigns toolset).",
+        default=0.001,
+        min=0.0,
+        max=1.0,
+        precision=4,
+        step=0.01
+    )
+    i3D_ME_uvIslandMargin : bpy.props.FloatProperty(
+        name="Island Margin",
+        description="Island margin for Smart UV Project (GamerDesigns toolset).",
+        default=0.005,
+        min=0.0,
+        max=1.0,
+        precision=4,
+        step=0.01
+    )
     UI_ActiveObjectName     : bpy.props.StringProperty ( name = "Active Object Name", default = "empty")
     UI_PrevActiveObjectName : bpy.props.StringProperty ( name = "Previously Active Object Name", default = "empty" """, update=test""")
     UI_autoAssign           : bpy.props.BoolProperty   ( name = "Auto Assign", default = False, description = "Update attributes automatic to selected object",update = toggleAutoAssign)
@@ -4274,6 +4767,7 @@ def drawObjectContextMenu(self, context):
 classes = (
         I3D_UIMaterialTemplateProperties,
         I3D_PT_PanelExport,
+        I3D_OT_RefreshAddonAfterUpdate,
         I3D_OT_PanelExport_ButtonAttr,
         I3D_OT_PanelExport_ButtonExport,
         I3D_OT_PanelTools_ButtonChangelog,

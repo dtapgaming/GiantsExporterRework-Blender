@@ -80,7 +80,7 @@ def getChangeLogFilename():
     script_directory = os.path.dirname(__file__)
 
     # Construct the path to the text file
-    return os.path.join(script_directory, "ChangeLog.txt")
+    return os.path.join(script_directory, "readme.txt")
 
 def getShownChangeLogFileName():
     # Get the user's AppData directory path
