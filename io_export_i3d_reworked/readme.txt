@@ -16,7 +16,7 @@ V 10.0.17.61 (14.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
     - Generates the template-style curve and armature: "2. EDIT me" + "3. EXPORT me".
     - Builds the 100-bone chain (Bone, Bone.002 ... Bone.100) and applies the matching Spline IK constraint.
     - Curve generation is centered on the world origin axis without forcing the Z (height) axis.
-  - Credits: "Created by DtapGaming and RMC GamerDesigns".
+  - Credits: "Collab by DtapGaming and RMC GamerDesigns".
 - Shader Setup / Simulator:
   - Material Type simulation behavior improved so visuals ignore UV map scaling correctly and act like Giants treats them.
 - Export reliability:
