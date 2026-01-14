@@ -65,52 +65,74 @@ class I3D_OT_ME_RemoveUnusedMaterials(bpy.types.Operator):
     bl_description = "Remove unused material slots from all mesh objects in the scene (GamerDesigns / Modder’s Edge logic)."
 
     def execute(self, context):
-        cleaned = 0
+        scene = context.scene
+        cleaned_slots = 0
+        removed_mats = 0
 
-        # Ensure we're in Object Mode for material slot operations
-        prev_mode = _ensure_mode(context, "OBJECT")
+        # We remove:
+        # 1) Material slots on mesh objects that are not referenced by any face.
+        # 2) Orphan materials in bpy.data.materials with users == 0 (no fake user, not linked).
+        prev_mode = _ensure_mode(context, 'OBJECT')
         try:
-            for obj in context.scene.objects:
-                if getattr(obj, "type", None) != 'MESH':
+            # 1) Strip unused material slots per object
+            for obj in scene.objects:
+                if obj.type != 'MESH':
                     continue
 
                 mesh = obj.data
-                unused = []
-
-                for idx, slot in enumerate(obj.material_slots):
-                    mat = slot.material
-                    if mat is None:
-                        unused.append(idx)
-                        continue
-
-                    # Any poly referencing this slot?
-                    if not any(poly.material_index == idx for poly in mesh.polygons):
-                        unused.append(idx)
-
-                if not unused:
+                if mesh is None:
                     continue
 
-                for i in sorted(unused, reverse=True):
+                # Face-used material indices
+                used_indices = set()
+                try:
+                    used_indices = {p.material_index for p in mesh.polygons}
+                except Exception:
+                    used_indices = set()
+
+                slot_count = len(obj.material_slots)
+                if slot_count == 0:
+                    continue
+
+                # Any slot index not referenced by faces is considered unused.
+                unused_indices = [i for i in range(slot_count) if i not in used_indices]
+                if not unused_indices:
+                    continue
+
+                # Pop from highest -> lowest to avoid index shifting problems.
+                for idx in sorted(unused_indices, reverse=True):
                     try:
-                        obj.active_material_index = i
-                        # Use temp_override so the operator reliably targets the intended object.
-                        with context.temp_override(object=obj, active_object=obj, selected_objects=[obj], selected_editable_objects=[obj]):
-                            bpy.ops.object.material_slot_remove()
-                        cleaned += 1
+                        mesh.materials.pop(index=idx)
+                        cleaned_slots += 1
                     except Exception:
-                        # Do not hard-fail the whole cleanup if one object has an issue.
-                        continue
+                        # Keep going; some slots/materials may be protected/linked/etc.
+                        pass
+
+            # 2) Remove orphan materials from the file (no users, no fake user, not linked)
+            orphan_mats = []
+            try:
+                orphan_mats = [m for m in bpy.data.materials if m is not None and m.users == 0 and m.library is None]
+            except Exception:
+                orphan_mats = []
+
+            for mat in orphan_mats:
+                try:
+                    # Disable Fake User so cleanup can delete 0-user materials.
+                    if getattr(mat, "use_fake_user", False):
+                        mat.use_fake_user = False
+                    bpy.data.materials.remove(mat, do_unlink=True)
+                    removed_mats += 1
+                except Exception:
+                    pass
+
         finally:
             _ensure_mode(context, prev_mode)
 
-        self.report({'INFO'}, f"Removed {cleaned} unused material slots.")
+        if cleaned_slots == 0 and removed_mats == 0:
+            self.report({'INFO'}, "Removed 0 unused material slots; deleted 0 orphan materials")
+        else:
+            self.report({'INFO'}, f"Removed {cleaned_slots} unused material slots; deleted {removed_mats} orphan materials")
         return {'FINISHED'}
-
-
-# -------------------------------------------------------------------------
-# Vertex cleanup
-# -------------------------------------------------------------------------
-
 class I3D_OT_ME_VertexCleanup(bpy.types.Operator):
     bl_idname = "i3d.me_vertex_cleanup"
     bl_label = "Vertex Cleanup"
@@ -295,6 +317,7 @@ class I3D_OT_ME_UV_SmartProject005(bpy.types.Operator):
 class I3D_OT_ME_MaterialReplaceBatch(bpy.types.Operator):
     bl_idname = "i3d.me_material_replace_batch"
     bl_label = "Replace Material A → B"
+    bl_description = "Replaces every use of Material A with Material B on the selected objects."
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):

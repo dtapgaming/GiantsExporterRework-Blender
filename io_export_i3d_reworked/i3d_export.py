@@ -1655,7 +1655,7 @@ class I3DIOexport( object ):
             dcc.UIAddMessage('BUILD BINARY')
             gamepath = ""
             if ("i3D_gameLocationDisplay" in bpy.context.scene.I3D_UIexportSettings):
-                gamepath = bpy.context.scene.I3D_UIexportSettings['i3D_gameLocationDisplay']
+                gamepath = bpy.context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay
             msgList = i3d_binaryUtil.create_binary_from_exe(filepath, gamepath)
             for msg in msgList:
                 dcc.UIAddMessage(msg)

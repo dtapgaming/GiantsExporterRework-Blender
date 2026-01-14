@@ -27,7 +27,9 @@ _MODULES = {
     '.vertexColorTool': None,
     '.splinesTool':None,
     '.moddersEdgeToolset': None,
-    '.DeltaVertex': None
+    '.DeltaVertex': None,
+    '.trackArrayTools': None,
+    '.i3d_vehicle_light_tool': None
 }
 
 for module in _MODULES.keys():

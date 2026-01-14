@@ -1,0 +1,250 @@
+<?xml version='1.0' encoding='utf-8'?>
+<popularL10NPreset version="1.0">
+    <entry template="ALLISCHALMERS_BLACK" brand="ALLIS-CHALMERS" key="l10n_ui_colorAllisChalmersBlack" en="Allis-Chalmers Black" de="Allis-Chalmers Schwarz" />
+    <entry template="ALLISCHALMERS_GRAY" brand="ALLIS-CHALMERS" key="l10n_ui_colorAllisChalmersGray" en="Allis-Chalmers Gray" de="Allis-Chalmers Grau" />
+    <entry template="ALLISCHALMERS_ORANGE" brand="ALLIS-CHALMERS" key="l10n_ui_colorAllisChalmersOrange" en="Allis-Chalmers Orange" de="Allis-Chalmers Orange" />
+    <entry template="ALLISCHALMERS_ORANGE2" brand="ALLIS-CHALMERS" key="l10n_ui_colorAllisChalmersOrangePersian" en="Allis-Chalmers Orange (Persian)" de="Allis-Chalmers Orange (Persisch)" />
+    <entry template="ALLISCHALMERS_ORANGE2_DARK" brand="ALLIS-CHALMERS" key="l10n_ui_colorAllisChalmersOrangePersianDark" en="Allis-Chalmers Orange (Persian) (Dark)" de="Allis-Chalmers Orange (Persisch) (Dunkel)" />
+    <entry template="ALLISCHALMERS_ORANGE2_LIGHT" brand="ALLIS-CHALMERS" key="l10n_ui_colorAllisChalmersOrangePersianLight" en="Allis-Chalmers Orange (Persian) (Light)" de="Allis-Chalmers Orange (Persisch) (Hell)" />
+    <entry template="ALLISCHALMERS_SILVER" brand="ALLIS-CHALMERS" key="l10n_ui_colorAllisChalmersSilver" en="Allis-Chalmers Silver" de="Allis-Chalmers Silber" />
+    <entry template="ALLISCHALMERS_WHITE" brand="ALLIS-CHALMERS" key="l10n_ui_colorAllisChalmersWhite" en="Allis-Chalmers White" de="Allis-Chalmers Weiß" />
+    <entry template="AUDI_BLACK" brand="AUDI" key="l10n_ui_colorAudiBlack" en="Audi Black" de="Audi Schwarz" />
+    <entry template="AUDI_GRAY" brand="AUDI" key="l10n_ui_colorAudiGray" en="Audi Gray" de="Audi Grau" />
+    <entry template="AUDI_RED" brand="AUDI" key="l10n_ui_colorAudiRed" en="Audi Red" de="Audi Rot" />
+    <entry template="AUDI_RED_DARK" brand="AUDI" key="l10n_ui_colorAudiRedDark" en="Audi Red (Dark)" de="Audi Rot (Dunkel)" />
+    <entry template="AUDI_RED_LIGHT" brand="AUDI" key="l10n_ui_colorAudiRedLight" en="Audi Red (Light)" de="Audi Rot (Hell)" />
+    <entry template="AUDI_SILVER" brand="AUDI" key="l10n_ui_colorAudiSilver" en="Audi Silver" de="Audi Silber" />
+    <entry template="AUDI_SILVER_2" brand="AUDI" key="l10n_ui_colorAudiSilver" en="Audi Silver" de="Audi Silber" />
+    <entry template="AUDI_WHITE" brand="AUDI" key="l10n_ui_colorAudiWhite" en="Audi White" de="Audi Weiß" />
+    <entry template="BMW_BLACK" brand="BMW" key="l10n_ui_colorBmwBlack" en="Bmw Black" de="Bmw Schwarz" />
+    <entry template="BMW_BLUE" brand="BMW" key="l10n_ui_colorBmwBlue" en="Bmw Blue" de="Bmw Blau" />
+    <entry template="BMW_BLUE_DARK" brand="BMW" key="l10n_ui_colorBmwBlueDark" en="Bmw Blue (Dark)" de="Bmw Blau (Dunkel)" />
+    <entry template="BMW_BLUE_LIGHT" brand="BMW" key="l10n_ui_colorBmwBlueLight" en="Bmw Blue (Light)" de="Bmw Blau (Hell)" />
+    <entry template="BMW_GRAY" brand="BMW" key="l10n_ui_colorBmwGray" en="Bmw Gray" de="Bmw Grau" />
+    <entry template="BMW_SILVER" brand="BMW" key="l10n_ui_colorBmwSilver" en="Bmw Silver" de="Bmw Silber" />
+    <entry template="BMW_WHITE" brand="BMW" key="l10n_ui_colorBmwWhite" en="Bmw White" de="Bmw Weiß" />
+    <entry template="CATERPILLAR_BLACK" brand="CATERPILLAR" key="l10n_ui_colorCaterpillarBlack" en="Caterpillar Black" de="Caterpillar Schwarz" />
+    <entry template="CATERPILLAR_GRAY" brand="CATERPILLAR" key="l10n_ui_colorCaterpillarGray" en="Caterpillar Gray" de="Caterpillar Grau" />
+    <entry template="CATERPILLAR_SILVER" brand="CATERPILLAR" key="l10n_ui_colorCaterpillarSilver" en="Caterpillar Silver" de="Caterpillar Silber" />
+    <entry template="CATERPILLAR_WHITE" brand="CATERPILLAR" key="l10n_ui_colorCaterpillarWhite" en="Caterpillar White" de="Caterpillar Weiß" />
+    <entry template="CATERPILLAR_YELLOW" brand="CATERPILLAR" key="l10n_ui_colorCaterpillarYellow" en="Caterpillar Yellow" de="Caterpillar Gelb" />
+    <entry template="CATERPILLAR_YELLOW_DARK" brand="CATERPILLAR" key="l10n_ui_colorCaterpillarYellowDark" en="Caterpillar Yellow (Dark)" de="Caterpillar Gelb (Dunkel)" />
+    <entry template="CATERPILLAR_YELLOW_LIGHT" brand="CATERPILLAR" key="l10n_ui_colorCaterpillarYellowLight" en="Caterpillar Yellow (Light)" de="Caterpillar Gelb (Hell)" />
+    <entry template="CHEVROLET_BLACK" brand="CHEVROLET" key="l10n_ui_colorChevroletBlack" en="Chevrolet Black" de="Chevrolet Schwarz" />
+    <entry template="CHEVROLET_BLUE" brand="CHEVROLET" key="l10n_ui_colorChevroletBlue" en="Chevrolet Blue" de="Chevrolet Blau" />
+    <entry template="CHEVROLET_BLUE_DARK" brand="CHEVROLET" key="l10n_ui_colorChevroletBlueDark" en="Chevrolet Blue (Dark)" de="Chevrolet Blau (Dunkel)" />
+    <entry template="CHEVROLET_BLUE_LIGHT" brand="CHEVROLET" key="l10n_ui_colorChevroletBlueLight" en="Chevrolet Blue (Light)" de="Chevrolet Blau (Hell)" />
+    <entry template="CHEVROLET_DARKGRAY" brand="CHEVROLET" key="l10n_ui_colorChevroletDarkGray" en="Chevrolet Dark Gray" de="Chevrolet Dunkelgrau" />
+    <entry template="CHEVROLET_GOLD" brand="CHEVROLET" key="l10n_ui_colorChevroletGold" en="Chevrolet Gold" de="Chevrolet Gold" />
+    <entry template="CHEVROLET_GOLD_DARK" brand="CHEVROLET" key="l10n_ui_colorChevroletGoldDark" en="Chevrolet Gold (Dark)" de="Chevrolet Gold (Dunkel)" />
+    <entry template="CHEVROLET_GOLD_LIGHT" brand="CHEVROLET" key="l10n_ui_colorChevroletGoldLight" en="Chevrolet Gold (Light)" de="Chevrolet Gold (Hell)" />
+    <entry template="CHEVROLET_GRAY" brand="CHEVROLET" key="l10n_ui_colorChevroletGray" en="Chevrolet Gray" de="Chevrolet Grau" />
+    <entry template="CHEVROLET_RED" brand="CHEVROLET" key="l10n_ui_colorChevroletRed" en="Chevrolet Red" de="Chevrolet Rot" />
+    <entry template="CHEVROLET_RED_DARK" brand="CHEVROLET" key="l10n_ui_colorChevroletRedDark" en="Chevrolet Red (Dark)" de="Chevrolet Rot (Dunkel)" />
+    <entry template="CHEVROLET_RED_LIGHT" brand="CHEVROLET" key="l10n_ui_colorChevroletRedLight" en="Chevrolet Red (Light)" de="Chevrolet Rot (Hell)" />
+    <entry template="CHEVROLET_SILVER" brand="CHEVROLET" key="l10n_ui_colorChevroletSilver" en="Chevrolet Silver" de="Chevrolet Silber" />
+    <entry template="CHEVROLET_SILVER_2" brand="CHEVROLET" key="l10n_ui_colorChevroletSilver" en="Chevrolet Silver" de="Chevrolet Silber" />
+    <entry template="CHEVROLET_WHITE" brand="CHEVROLET" key="l10n_ui_colorChevroletWhite" en="Chevrolet White" de="Chevrolet Weiß" />
+    <entry template="DODGE_BLACK" brand="DODGE" key="l10n_ui_colorDodgeBlack" en="Dodge Black" de="Dodge Schwarz" />
+    <entry template="DODGE_GRAY" brand="DODGE" key="l10n_ui_colorDodgeGray" en="Dodge Gray" de="Dodge Grau" />
+    <entry template="DODGE_RED" brand="DODGE" key="l10n_ui_colorDodgeRed" en="Dodge Red" de="Dodge Rot" />
+    <entry template="DODGE_RED_DARK" brand="DODGE" key="l10n_ui_colorDodgeRedDark" en="Dodge Red (Dark)" de="Dodge Rot (Dunkel)" />
+    <entry template="DODGE_RED_LIGHT" brand="DODGE" key="l10n_ui_colorDodgeRedLight" en="Dodge Red (Light)" de="Dodge Rot (Hell)" />
+    <entry template="DODGE_SILVER" brand="DODGE" key="l10n_ui_colorDodgeSilver" en="Dodge Silver" de="Dodge Silber" />
+    <entry template="DODGE_WHITE" brand="DODGE" key="l10n_ui_colorDodgeWhite" en="Dodge White" de="Dodge Weiß" />
+    <entry template="FERRARI_BLACK" brand="FERRARI" key="l10n_ui_colorFerrariBlack" en="Ferrari Black" de="Ferrari Schwarz" />
+    <entry template="FERRARI_GRAY" brand="FERRARI" key="l10n_ui_colorFerrariGray" en="Ferrari Gray" de="Ferrari Grau" />
+    <entry template="FERRARI_RED" brand="FERRARI" key="l10n_ui_colorFerrariRed" en="Ferrari Red" de="Ferrari Rot" />
+    <entry template="FERRARI_RED_DARK" brand="FERRARI" key="l10n_ui_colorFerrariRedDark" en="Ferrari Red (Dark)" de="Ferrari Rot (Dunkel)" />
+    <entry template="FERRARI_RED_LIGHT" brand="FERRARI" key="l10n_ui_colorFerrariRedLight" en="Ferrari Red (Light)" de="Ferrari Rot (Hell)" />
+    <entry template="FERRARI_SILVER" brand="FERRARI" key="l10n_ui_colorFerrariSilver" en="Ferrari Silver" de="Ferrari Silber" />
+    <entry template="FERRARI_WHITE" brand="FERRARI" key="l10n_ui_colorFerrariWhite" en="Ferrari White" de="Ferrari Weiß" />
+    <entry template="FERRARI_YELLOW" brand="FERRARI" key="l10n_ui_colorFerrariYellow" en="Ferrari Yellow" de="Ferrari Gelb" />
+    <entry template="FERRARI_YELLOW_DARK" brand="FERRARI" key="l10n_ui_colorFerrariYellowDark" en="Ferrari Yellow (Dark)" de="Ferrari Gelb (Dunkel)" />
+    <entry template="FERRARI_YELLOW_LIGHT" brand="FERRARI" key="l10n_ui_colorFerrariYellowLight" en="Ferrari Yellow (Light)" de="Ferrari Gelb (Hell)" />
+    <entry template="FORD_BLACK" brand="FORD" key="l10n_ui_colorFordBlack" en="Ford Black" de="Ford Schwarz" />
+    <entry template="FORD_BLUE" brand="FORD" key="l10n_ui_colorFordBlue" en="Ford Blue" de="Ford Blau" />
+    <entry template="FORD_DARKBLUE" brand="FORD" key="l10n_ui_colorFordDarkBlue" en="Ford Dark Blue" de="Ford Dunkelblau" />
+    <entry template="FORD_GRAY" brand="FORD" key="l10n_ui_colorFordGray" en="Ford Gray" de="Ford Grau" />
+    <entry template="FORD_LIGHTBLUE" brand="FORD" key="l10n_ui_colorFordLightBlue" en="Ford Light Blue" de="Ford Hellblau" />
+    <entry template="FORD_LIGHTBLUE_DARK" brand="FORD" key="l10n_ui_colorFordLightBlueDark" en="Ford Light Blue (Dark)" de="Ford Hellblau (Dunkel)" />
+    <entry template="FORD_LIGHTBLUE_LIGHT" brand="FORD" key="l10n_ui_colorFordLightBlueLight" en="Ford Light Blue (Light)" de="Ford Hellblau (Hell)" />
+    <entry template="FORD_MEDBLUE" brand="FORD" key="l10n_ui_colorFordMediumBlue" en="Ford Medium Blue" de="Ford Mittelblau" />
+    <entry template="FORD_MEDBLUE_DARK" brand="FORD" key="l10n_ui_colorFordMediumBlueDark" en="Ford Medium Blue (Dark)" de="Ford Mittelblau (Dunkel)" />
+    <entry template="FORD_MEDBLUE_LIGHT" brand="FORD" key="l10n_ui_colorFordMediumBlueLight" en="Ford Medium Blue (Light)" de="Ford Mittelblau (Hell)" />
+    <entry template="FORD_NAVY" brand="FORD" key="l10n_ui_colorFordNavy" en="Ford Navy" de="Ford Marine" />
+    <entry template="FORD_PERFORMANCE_RED" brand="FORD" key="l10n_ui_colorFordPerformanceRed" en="Ford Performance Red" de="Ford Performance Rot" />
+    <entry template="FORD_PERFORMANCE_RED_DARK" brand="FORD" key="l10n_ui_colorFordPerformanceRedDark" en="Ford Performance Red (Dark)" de="Ford Performance Rot (Dunkel)" />
+    <entry template="FORD_PERFORMANCE_RED_LIGHT" brand="FORD" key="l10n_ui_colorFordPerformanceRedLight" en="Ford Performance Red (Light)" de="Ford Performance Rot (Hell)" />
+    <entry template="FORD_SILVER" brand="FORD" key="l10n_ui_colorFordSilver" en="Ford Silver" de="Ford Silber" />
+    <entry template="FORD_SILVER_2" brand="FORD" key="l10n_ui_colorFordSilver" en="Ford Silver" de="Ford Silber" />
+    <entry template="FORD_WHITE" brand="FORD" key="l10n_ui_colorFordWhite" en="Ford White" de="Ford Weiß" />
+    <entry template="FREIGHTLINER_BLACK" brand="FREIGHTLINER" key="l10n_ui_colorFreightlinerBlack" en="Freightliner Black" de="Freightliner Schwarz" />
+    <entry template="FREIGHTLINER_BLACK_2" brand="FREIGHTLINER" key="l10n_ui_colorFreightlinerBlack" en="Freightliner Black" de="Freightliner Schwarz" />
+    <entry template="FREIGHTLINER_BLUE" brand="FREIGHTLINER" key="l10n_ui_colorFreightlinerBlue" en="Freightliner Blue" de="Freightliner Blau" />
+    <entry template="FREIGHTLINER_DARKGRAY" brand="FREIGHTLINER" key="l10n_ui_colorFreightlinerDarkGray" en="Freightliner Dark Gray" de="Freightliner Dunkelgrau" />
+    <entry template="FREIGHTLINER_GRAY" brand="FREIGHTLINER" key="l10n_ui_colorFreightlinerGray" en="Freightliner Gray" de="Freightliner Grau" />
+    <entry template="FREIGHTLINER_SILVER" brand="FREIGHTLINER" key="l10n_ui_colorFreightlinerSilver" en="Freightliner Silver" de="Freightliner Silber" />
+    <entry template="FREIGHTLINER_WHITE" brand="FREIGHTLINER" key="l10n_ui_colorFreightlinerWhite" en="Freightliner White" de="Freightliner Weiß" />
+    <entry template="FREIGHTLINER_WHITE_2" brand="FREIGHTLINER" key="l10n_ui_colorFreightlinerWhite" en="Freightliner White" de="Freightliner Weiß" />
+    <entry template="GMC_BLACK" brand="GMC" key="l10n_ui_colorGmcBlack" en="Gmc Black" de="Gmc Schwarz" />
+    <entry template="GMC_BLUE" brand="GMC" key="l10n_ui_colorGmcBlue" en="Gmc Blue" de="Gmc Blau" />
+    <entry template="GMC_BLUE_DARK" brand="GMC" key="l10n_ui_colorGmcBlueDark" en="Gmc Blue (Dark)" de="Gmc Blau (Dunkel)" />
+    <entry template="GMC_BLUE_LIGHT" brand="GMC" key="l10n_ui_colorGmcBlueLight" en="Gmc Blue (Light)" de="Gmc Blau (Hell)" />
+    <entry template="GMC_DARKRED" brand="GMC" key="l10n_ui_colorGmcDarkRed" en="Gmc Dark Red" de="Gmc Dunkel Rot" />
+    <entry template="GMC_DARKRED_DARK" brand="GMC" key="l10n_ui_colorGmcDarkRedDark" en="Gmc Dark Red (Dark)" de="Gmc Dunkel Rot (Dunkel)" />
+    <entry template="GMC_DARKRED_LIGHT" brand="GMC" key="l10n_ui_colorGmcDarkRedLight" en="Gmc Dark Red (Light)" de="Gmc Dunkel Rot (Hell)" />
+    <entry template="GMC_GRAY" brand="GMC" key="l10n_ui_colorGmcGray" en="Gmc Gray" de="Gmc Grau" />
+    <entry template="GMC_RED" brand="GMC" key="l10n_ui_colorGmcRed" en="Gmc Red" de="Gmc Rot" />
+    <entry template="GMC_RED_DARK" brand="GMC" key="l10n_ui_colorGmcRedDark" en="Gmc Red (Dark)" de="Gmc Rot (Dunkel)" />
+    <entry template="GMC_RED_LIGHT" brand="GMC" key="l10n_ui_colorGmcRedLight" en="Gmc Red (Light)" de="Gmc Rot (Hell)" />
+    <entry template="GMC_SILVER" brand="GMC" key="l10n_ui_colorGmcSilver" en="Gmc Silver" de="Gmc Silber" />
+    <entry template="GMC_SILVER_2" brand="GMC" key="l10n_ui_colorGmcSilver" en="Gmc Silver" de="Gmc Silber" />
+    <entry template="GMC_WHITE" brand="GMC" key="l10n_ui_colorGmcWhite" en="Gmc White" de="Gmc Weiß" />
+    <entry template="HONDA_BLACK" brand="HONDA" key="l10n_ui_colorHondaBlack" en="Honda Black" de="Honda Schwarz" />
+    <entry template="HONDA_GRAY" brand="HONDA" key="l10n_ui_colorHondaGray" en="Honda Gray" de="Honda Grau" />
+    <entry template="HONDA_RED" brand="HONDA" key="l10n_ui_colorHondaRed" en="Honda Red" de="Honda Rot" />
+    <entry template="HONDA_RED_DARK" brand="HONDA" key="l10n_ui_colorHondaRedDark" en="Honda Red (Dark)" de="Honda Rot (Dunkel)" />
+    <entry template="HONDA_RED_LIGHT" brand="HONDA" key="l10n_ui_colorHondaRedLight" en="Honda Red (Light)" de="Honda Rot (Hell)" />
+    <entry template="HONDA_SILVER" brand="HONDA" key="l10n_ui_colorHondaSilver" en="Honda Silver" de="Honda Silber" />
+    <entry template="HONDA_WHITE" brand="HONDA" key="l10n_ui_colorHondaWhite" en="Honda White" de="Honda Weiß" />
+    <entry template="JEEP_BLACK" brand="JEEP" key="l10n_ui_colorJeepBlack" en="Jeep Black" de="Jeep Schwarz" />
+    <entry template="JEEP_GRAY" brand="JEEP" key="l10n_ui_colorJeepGray" en="Jeep Gray" de="Jeep Grau" />
+    <entry template="JEEP_GREEN" brand="JEEP" key="l10n_ui_colorJeepGreen" en="Jeep Green" de="Jeep Grün" />
+    <entry template="JEEP_GREEN_DARK" brand="JEEP" key="l10n_ui_colorJeepGreenDark" en="Jeep Green (Dark)" de="Jeep Grün (Dunkel)" />
+    <entry template="JEEP_GREEN_LIGHT" brand="JEEP" key="l10n_ui_colorJeepGreenLight" en="Jeep Green (Light)" de="Jeep Grün (Hell)" />
+    <entry template="JEEP_SILVER" brand="JEEP" key="l10n_ui_colorJeepSilver" en="Jeep Silver" de="Jeep Silber" />
+    <entry template="JEEP_WHITE" brand="JEEP" key="l10n_ui_colorJeepWhite" en="Jeep White" de="Jeep Weiß" />
+    <entry template="KENWORTH_BLACK" brand="KENWORTH" key="l10n_ui_colorKenworthBlack" en="Kenworth Black" de="Kenworth Schwarz" />
+    <entry template="KENWORTH_GRAY" brand="KENWORTH" key="l10n_ui_colorKenworthGray" en="Kenworth Gray" de="Kenworth Grau" />
+    <entry template="KENWORTH_RED" brand="KENWORTH" key="l10n_ui_colorKenworthRed" en="Kenworth Red" de="Kenworth Rot" />
+    <entry template="KENWORTH_RED_DARK" brand="KENWORTH" key="l10n_ui_colorKenworthRedDark" en="Kenworth Red (Dark)" de="Kenworth Rot (Dunkel)" />
+    <entry template="KENWORTH_RED_LIGHT" brand="KENWORTH" key="l10n_ui_colorKenworthRedLight" en="Kenworth Red (Light)" de="Kenworth Rot (Hell)" />
+    <entry template="KENWORTH_SILVER" brand="KENWORTH" key="l10n_ui_colorKenworthSilver" en="Kenworth Silver" de="Kenworth Silber" />
+    <entry template="KENWORTH_WHITE" brand="KENWORTH" key="l10n_ui_colorKenworthWhite" en="Kenworth White" de="Kenworth Weiß" />
+    <entry template="LAMBORGHINI_BLACK" brand="LAMBORGHINI" key="l10n_ui_colorLamborghiniBlack" en="Lamborghini Black" de="Lamborghini Schwarz" />
+    <entry template="LAMBORGHINI_GOLD" brand="LAMBORGHINI" key="l10n_ui_colorLamborghiniGold" en="Lamborghini Gold" de="Lamborghini Gold" />
+    <entry template="LAMBORGHINI_GOLD_DARK" brand="LAMBORGHINI" key="l10n_ui_colorLamborghiniGoldDark" en="Lamborghini Gold (Dark)" de="Lamborghini Gold (Dunkel)" />
+    <entry template="LAMBORGHINI_GOLD_LIGHT" brand="LAMBORGHINI" key="l10n_ui_colorLamborghiniGoldLight" en="Lamborghini Gold (Light)" de="Lamborghini Gold (Hell)" />
+    <entry template="LAMBORGHINI_GRAY" brand="LAMBORGHINI" key="l10n_ui_colorLamborghiniGray" en="Lamborghini Gray" de="Lamborghini Grau" />
+    <entry template="LAMBORGHINI_SILVER" brand="LAMBORGHINI" key="l10n_ui_colorLamborghiniSilver" en="Lamborghini Silver" de="Lamborghini Silber" />
+    <entry template="LAMBORGHINI_WHITE" brand="LAMBORGHINI" key="l10n_ui_colorLamborghiniWhite" en="Lamborghini White" de="Lamborghini Weiß" />
+    <entry template="MERCEDES_BLACK" brand="MERCEDES-BENZ" key="l10n_ui_colorMercedesBenzBlack" en="Mercedes-Benz Black" de="Mercedes-Benz Schwarz" />
+    <entry template="MERCEDES_DARKBLUE" brand="MERCEDES-BENZ" key="l10n_ui_colorMercedesBenzDarkBlue" en="Mercedes-Benz Dark Blue" de="Mercedes-Benz Dunkelblau" />
+    <entry template="MERCEDESBENZ_MERCEDES_DARKBLUE_DARK" brand="MERCEDES-BENZ" key="l10n_ui_colorMercedesBenzDarkBlueDark" en="Mercedes-Benz Dark Blue (Dark)" de="Mercedes-Benz Dunkelblau (Dunkel)" />
+    <entry template="MERCEDESBENZ_MERCEDES_DARKBLUE_LIGHT" brand="MERCEDES-BENZ" key="l10n_ui_colorMercedesBenzDarkBlueLight" en="Mercedes-Benz Dark Blue (Light)" de="Mercedes-Benz Dunkelblau (Hell)" />
+    <entry template="MERCEDESBENZ_GRAY" brand="MERCEDES-BENZ" key="l10n_ui_colorMercedesBenzGray" en="Mercedes-Benz Gray" de="Mercedes-Benz Grau" />
+    <entry template="MERCEDES_SILVER" brand="MERCEDES-BENZ" key="l10n_ui_colorMercedesBenzSilver" en="Mercedes-Benz Silver" de="Mercedes-Benz Silber" />
+    <entry template="MERCEDESBENZ_SILVER" brand="MERCEDES-BENZ" key="l10n_ui_colorMercedesBenzSilver" en="Mercedes-Benz Silver" de="Mercedes-Benz Silber" />
+    <entry template="MERCEDES_WHITE" brand="MERCEDES-BENZ" key="l10n_ui_colorMercedesBenzWhite" en="Mercedes-Benz White" de="Mercedes-Benz Weiß" />
+    <entry template="NISSAN_BLACK" brand="NISSAN" key="l10n_ui_colorNissanBlack" en="Nissan Black" de="Nissan Schwarz" />
+    <entry template="NISSAN_GRAY" brand="NISSAN" key="l10n_ui_colorNissanGray" en="Nissan Gray" de="Nissan Grau" />
+    <entry template="NISSAN_RED" brand="NISSAN" key="l10n_ui_colorNissanRed" en="Nissan Red" de="Nissan Rot" />
+    <entry template="NISSAN_RED_DARK" brand="NISSAN" key="l10n_ui_colorNissanRedDark" en="Nissan Red (Dark)" de="Nissan Rot (Dunkel)" />
+    <entry template="NISSAN_RED_LIGHT" brand="NISSAN" key="l10n_ui_colorNissanRedLight" en="Nissan Red (Light)" de="Nissan Rot (Hell)" />
+    <entry template="NISSAN_SILVER" brand="NISSAN" key="l10n_ui_colorNissanSilver" en="Nissan Silver" de="Nissan Silber" />
+    <entry template="NISSAN_WHITE" brand="NISSAN" key="l10n_ui_colorNissanWhite" en="Nissan White" de="Nissan Weiß" />
+    <entry template="PETERBILT_BLACK" brand="PETERBILT" key="l10n_ui_colorPeterbiltBlack" en="Peterbilt Black" de="Peterbilt Schwarz" />
+    <entry template="PETERBILT_GRAY" brand="PETERBILT" key="l10n_ui_colorPeterbiltGray" en="Peterbilt Gray" de="Peterbilt Grau" />
+    <entry template="PETERBILT_RED" brand="PETERBILT" key="l10n_ui_colorPeterbiltRed" en="Peterbilt Red" de="Peterbilt Rot" />
+    <entry template="PETERBILT_RED_DARK" brand="PETERBILT" key="l10n_ui_colorPeterbiltRedDark" en="Peterbilt Red (Dark)" de="Peterbilt Rot (Dunkel)" />
+    <entry template="PETERBILT_RED_LIGHT" brand="PETERBILT" key="l10n_ui_colorPeterbiltRedLight" en="Peterbilt Red (Light)" de="Peterbilt Rot (Hell)" />
+    <entry template="PETERBILT_SILVER" brand="PETERBILT" key="l10n_ui_colorPeterbiltSilver" en="Peterbilt Silver" de="Peterbilt Silber" />
+    <entry template="PETERBILT_WHITE" brand="PETERBILT" key="l10n_ui_colorPeterbiltWhite" en="Peterbilt White" de="Peterbilt Weiß" />
+    <entry template="PORSCHE_BLACK" brand="PORSCHE" key="l10n_ui_colorPorscheBlack" en="Porsche Black" de="Porsche Schwarz" />
+    <entry template="PORSCHE_GOLD" brand="PORSCHE" key="l10n_ui_colorPorscheGold" en="Porsche Gold" de="Porsche Gold" />
+    <entry template="PORSCHE_GOLD_DARK" brand="PORSCHE" key="l10n_ui_colorPorscheGoldDark" en="Porsche Gold (Dark)" de="Porsche Gold (Dunkel)" />
+    <entry template="PORSCHE_GOLD_LIGHT" brand="PORSCHE" key="l10n_ui_colorPorscheGoldLight" en="Porsche Gold (Light)" de="Porsche Gold (Hell)" />
+    <entry template="PORSCHE_GRAY" brand="PORSCHE" key="l10n_ui_colorPorscheGray" en="Porsche Gray" de="Porsche Grau" />
+    <entry template="PORSCHE_RED" brand="PORSCHE" key="l10n_ui_colorPorscheRed" en="Porsche Red" de="Porsche Rot" />
+    <entry template="PORSCHE_RED_DARK" brand="PORSCHE" key="l10n_ui_colorPorscheRedDark" en="Porsche Red (Dark)" de="Porsche Rot (Dunkel)" />
+    <entry template="PORSCHE_RED_LIGHT" brand="PORSCHE" key="l10n_ui_colorPorscheRedLight" en="Porsche Red (Light)" de="Porsche Rot (Hell)" />
+    <entry template="PORSCHE_SILVER" brand="PORSCHE" key="l10n_ui_colorPorscheSilver" en="Porsche Silver" de="Porsche Silber" />
+    <entry template="PORSCHE_WHITE" brand="PORSCHE" key="l10n_ui_colorPorscheWhite" en="Porsche White" de="Porsche Weiß" />
+    <entry template="RAM_BLACK" brand="RAM" key="l10n_ui_colorRamBlack" en="Ram Black" de="Ram Schwarz" />
+    <entry template="RAM_GRAY" brand="RAM" key="l10n_ui_colorRamGrey" en="Ram Grey" de="Ram Grau" />
+    <entry template="RAM_RED" brand="RAM" key="l10n_ui_colorRamRed" en="Ram Red" de="Ram Rot" />
+    <entry template="RAM_SILVER" brand="RAM" key="l10n_ui_colorRamSilver" en="Ram Silver" de="Ram Silber" />
+    <entry template="RAM_SILVER3" brand="RAM" key="l10n_ui_colorRamSilverDark" en="Ram Silver (Dark)" de="Ram Silber (Dunkel)" />
+    <entry template="RAM_SILVER2" brand="RAM" key="l10n_ui_colorRamSilverLight" en="Ram Silver (Light)" de="Ram Silber (Hell)" />
+    <entry template="RAM_WHITE" brand="RAM" key="l10n_ui_colorRamWhite" en="Ram White" de="Ram Weiß" />
+    <entry template="SUBARU_BLACK" brand="SUBARU" key="l10n_ui_colorSubaruBlack" en="Subaru Black" de="Subaru Schwarz" />
+    <entry template="SUBARU_BLUE" brand="SUBARU" key="l10n_ui_colorSubaruBlue" en="Subaru Blue" de="Subaru Blau" />
+    <entry template="SUBARU_BLUE_DARK" brand="SUBARU" key="l10n_ui_colorSubaruBlueDark" en="Subaru Blue (Dark)" de="Subaru Blau (Dunkel)" />
+    <entry template="SUBARU_BLUE_LIGHT" brand="SUBARU" key="l10n_ui_colorSubaruBlueLight" en="Subaru Blue (Light)" de="Subaru Blau (Hell)" />
+    <entry template="SUBARU_GRAY" brand="SUBARU" key="l10n_ui_colorSubaruGray" en="Subaru Gray" de="Subaru Grau" />
+    <entry template="SUBARU_SILVER" brand="SUBARU" key="l10n_ui_colorSubaruSilver" en="Subaru Silver" de="Subaru Silber" />
+    <entry template="SUBARU_WHITE" brand="SUBARU" key="l10n_ui_colorSubaruWhite" en="Subaru White" de="Subaru Weiß" />
+    <entry template="TESLA_BLACK" brand="TESLA" key="l10n_ui_colorTeslaBlack" en="Tesla Black" de="Tesla Schwarz" />
+    <entry template="TESLA_GRAY" brand="TESLA" key="l10n_ui_colorTeslaGray" en="Tesla Gray" de="Tesla Grau" />
+    <entry template="TESLA_RED" brand="TESLA" key="l10n_ui_colorTeslaRed" en="Tesla Red" de="Tesla Rot" />
+    <entry template="TESLA_RED_DARK" brand="TESLA" key="l10n_ui_colorTeslaRedDark" en="Tesla Red (Dark)" de="Tesla Rot (Dunkel)" />
+    <entry template="TESLA_RED_LIGHT" brand="TESLA" key="l10n_ui_colorTeslaRedLight" en="Tesla Red (Light)" de="Tesla Rot (Hell)" />
+    <entry template="TESLA_SILVER" brand="TESLA" key="l10n_ui_colorTeslaSilver" en="Tesla Silver" de="Tesla Silber" />
+    <entry template="TESLA_WHITE" brand="TESLA" key="l10n_ui_colorTeslaWhite" en="Tesla White" de="Tesla Weiß" />
+    <entry template="TOYOTA_BLACK" brand="TOYOTA" key="l10n_ui_colorToyotaBlack" en="Toyota Black" de="Toyota Schwarz" />
+    <entry template="TOYOTA_GRAY" brand="TOYOTA" key="l10n_ui_colorToyotaGray" en="Toyota Gray" de="Toyota Grau" />
+    <entry template="TOYOTA_RED" brand="TOYOTA" key="l10n_ui_colorToyotaRed" en="Toyota Red" de="Toyota Rot" />
+    <entry template="TOYOTA_RED_DARK" brand="TOYOTA" key="l10n_ui_colorToyotaRedDark" en="Toyota Red (Dark)" de="Toyota Rot (Dunkel)" />
+    <entry template="TOYOTA_RED_LIGHT" brand="TOYOTA" key="l10n_ui_colorToyotaRedLight" en="Toyota Red (Light)" de="Toyota Rot (Hell)" />
+    <entry template="TOYOTA_SILVER" brand="TOYOTA" key="l10n_ui_colorToyotaSilver" en="Toyota Silver" de="Toyota Silber" />
+    <entry template="TOYOTA_WHITE" brand="TOYOTA" key="l10n_ui_colorToyotaWhite" en="Toyota White" de="Toyota Weiß" />
+    <entry template="VOLKSWAGEN_BLACK" brand="VOLKSWAGEN" key="l10n_ui_colorVolkswagenBlack" en="Volkswagen Black" de="Volkswagen Schwarz" />
+    <entry template="VOLKSWAGEN_BLUE" brand="VOLKSWAGEN" key="l10n_ui_colorVolkswagenBlue" en="Volkswagen Blue" de="Volkswagen Blau" />
+    <entry template="VOLKSWAGEN_BLUE_DARK" brand="VOLKSWAGEN" key="l10n_ui_colorVolkswagenBlueDark" en="Volkswagen Blue (Dark)" de="Volkswagen Blau (Dunkel)" />
+    <entry template="VOLKSWAGEN_BLUE_LIGHT" brand="VOLKSWAGEN" key="l10n_ui_colorVolkswagenBlueLight" en="Volkswagen Blue (Light)" de="Volkswagen Blau (Hell)" />
+    <entry template="VOLKSWAGEN_GRAY" brand="VOLKSWAGEN" key="l10n_ui_colorVolkswagenGray" en="Volkswagen Gray" de="Volkswagen Grau" />
+    <entry template="VOLKSWAGEN_SILVER" brand="VOLKSWAGEN" key="l10n_ui_colorVolkswagenSilver" en="Volkswagen Silver" de="Volkswagen Silber" />
+    <entry template="VOLKSWAGEN_WHITE" brand="VOLKSWAGEN" key="l10n_ui_colorVolkswagenWhite" en="Volkswagen White" de="Volkswagen Weiß" />
+    <entry template="MACK_BLACK" brand="MACK" key="l10n_ui_colorMackBlack" en="Mack Black" de="Mack Schwarz" />
+    <entry template="MACK_GRAY" brand="MACK" key="l10n_ui_colorMackGray" en="Mack Gray" de="Mack Grau" />
+    <entry template="MACK_SILVER" brand="MACK" key="l10n_ui_colorMackSilver" en="Mack Silver" de="Mack Silber" />
+    <entry template="MACK_WHITE" brand="MACK" key="l10n_ui_colorMackWhite" en="Mack White" de="Mack Weiß" />
+    <entry template="MACK_GREEN" brand="MACK" key="l10n_ui_colorMackGreen" en="Mack Green" de="Mack Grün" />
+    <entry template="MACK_GREEN_DARK" brand="MACK" key="l10n_ui_colorMackGreenDark" en="Mack Green (Dark)" de="Mack Grün (Dunkel)" />
+    <entry template="MACK_GREEN_LIGHT" brand="MACK" key="l10n_ui_colorMackGreenLight" en="Mack Green (Light)" de="Mack Grün (Hell)" />
+    <entry template="MACK_RED" brand="MACK" key="l10n_ui_colorMackRed" en="Mack Red" de="Mack Rot" />
+    <entry template="MACK_RED_DARK" brand="MACK" key="l10n_ui_colorMackRedDark" en="Mack Red (Dark)" de="Mack Rot (Dunkel)" />
+    <entry template="MACK_RED_LIGHT" brand="MACK" key="l10n_ui_colorMackRedLight" en="Mack Red (Light)" de="Mack Rot (Hell)" />
+    <entry template="INTERNATIONAL_BLACK" brand="INTERNATIONAL" key="l10n_ui_colorInternationalBlack" en="International Black" de="International Schwarz" />
+    <entry template="INTERNATIONAL_GRAY" brand="INTERNATIONAL" key="l10n_ui_colorInternationalGray" en="International Gray" de="International Grau" />
+    <entry template="INTERNATIONAL_SILVER" brand="INTERNATIONAL" key="l10n_ui_colorInternationalSilver" en="International Silver" de="International Silber" />
+    <entry template="INTERNATIONAL_WHITE" brand="INTERNATIONAL" key="l10n_ui_colorInternationalWhite" en="International White" de="International Weiß" />
+    <entry template="INTERNATIONAL_RED" brand="INTERNATIONAL" key="l10n_ui_colorInternationalRed" en="International Red" de="International Rot" />
+    <entry template="INTERNATIONAL_RED_DARK" brand="INTERNATIONAL" key="l10n_ui_colorInternationalRedDark" en="International Red (Dark)" de="International Rot (Dunkel)" />
+    <entry template="INTERNATIONAL_RED_LIGHT" brand="INTERNATIONAL" key="l10n_ui_colorInternationalRedLight" en="International Red (Light)" de="International Rot (Hell)" />
+    <entry template="INTERNATIONAL_BLUE" brand="INTERNATIONAL" key="l10n_ui_colorInternationalBlue" en="International Blue" de="International Blau" />
+    <entry template="INTERNATIONAL_BLUE_DARK" brand="INTERNATIONAL" key="l10n_ui_colorInternationalBlueDark" en="International Blue (Dark)" de="International Blau (Dunkel)" />
+    <entry template="INTERNATIONAL_BLUE_LIGHT" brand="INTERNATIONAL" key="l10n_ui_colorInternationalBlueLight" en="International Blue (Light)" de="International Blau (Hell)" />
+    <entry template="YOUTUBE_RED" brand="YOUTUBE" key="l10n_ui_colorYoutubeRed" en="YouTube Red" de="Youtube Rot" />
+    <entry template="YOUTUBE_RED_DARK" brand="YOUTUBE" key="l10n_ui_colorYoutubeRedDark" en="YouTube Red (Dark)" de="Youtube Rot (Dunkel)" />
+    <entry template="YOUTUBE_RED_LIGHT" brand="YOUTUBE" key="l10n_ui_colorYoutubeRedLight" en="YouTube Red (Light)" de="Youtube Rot (Hell)" />
+    <entry template="YOUTUBE_ALMOSTBLACK" brand="YOUTUBE" key="l10n_ui_colorYoutubeAlmostBlack" en="Youtube Almost Black" de="Youtube Almost Schwarz" />
+    <entry template="YOUTUBE_WHITE" brand="YOUTUBE" key="l10n_ui_colorYoutubeWhite" en="Youtube White" de="Youtube Weiß" />
+    <entry template="TWITCH_PURPLE" brand="TWITCH" key="l10n_ui_colorTwitchPurple" en="Twitch Purple" de="Twitch Lila" />
+    <entry template="TWITCH_PURPLE_DARK" brand="TWITCH" key="l10n_ui_colorTwitchPurpleDark" en="Twitch Purple (Dark)" de="Twitch Lila (Dunkel)" />
+    <entry template="TWITCH_PURPLE_LIGHT" brand="TWITCH" key="l10n_ui_colorTwitchPurpleLight" en="Twitch Purple (Light)" de="Twitch Lila (Hell)" />
+    <entry template="TWITCH_LAVENDER" brand="TWITCH" key="l10n_ui_colorTwitchLavender" en="Twitch Lavender" de="Twitch Lavender" />
+    <entry template="TWITCH_BLACK" brand="TWITCH" key="l10n_ui_colorTwitchBlack" en="Twitch Black" de="Twitch Schwarz" />
+    <entry template="TWITCH_WHITE" brand="TWITCH" key="l10n_ui_colorTwitchWhite" en="Twitch White" de="Twitch Weiß" />
+    <entry template="KICK_GREEN" brand="KICK" key="l10n_ui_colorKickGreen" en="Kick Green" de="Kick Grün" />
+    <entry template="KICK_GREEN_DARK" brand="KICK" key="l10n_ui_colorKickGreenDark" en="Kick Green (Dark)" de="Kick Grün (Dunkel)" />
+    <entry template="KICK_GREEN_LIGHT" brand="KICK" key="l10n_ui_colorKickGreenLight" en="Kick Green (Light)" de="Kick Grün (Hell)" />
+    <entry template="KICK_GREEN_NEON" brand="KICK" key="l10n_ui_colorKickGreenNeon" en="Kick Green (Neon)" de="Kick Grün (Neon)" />
+    <entry template="KICK_DARK" brand="KICK" key="l10n_ui_colorKickDark" en="Kick Dark" de="Kick Dunkel" />
+    <entry template="KICK_BLACK" brand="KICK" key="l10n_ui_colorKickBlack" en="Kick Black" de="Kick Schwarz" />
+    <entry template="KICK_WHITE" brand="KICK" key="l10n_ui_colorKickWhite" en="Kick White" de="Kick Weiß" />
+    <entry template="TIKTOK_PINK" brand="TIKTOK" key="l10n_ui_colorTiktokPink" en="TikTok Pink" de="Tiktok Rosa" />
+    <entry template="TIKTOK_PINK_DARK" brand="TIKTOK" key="l10n_ui_colorTiktokPinkDark" en="TikTok Pink (Dark)" de="Tiktok Rosa (Dunkel)" />
+    <entry template="TIKTOK_PINK_LIGHT" brand="TIKTOK" key="l10n_ui_colorTiktokPinkLight" en="TikTok Pink (Light)" de="Tiktok Rosa (Hell)" />
+    <entry template="TIKTOK_AQUA" brand="TIKTOK" key="l10n_ui_colorTiktokAqua" en="TikTok Aqua" de="Tiktok Aqua" />
+    <entry template="TIKTOK_AQUA_DARK" brand="TIKTOK" key="l10n_ui_colorTiktokAquaDark" en="TikTok Aqua (Dark)" de="Tiktok Aqua (Dunkel)" />
+    <entry template="TIKTOK_AQUA_LIGHT" brand="TIKTOK" key="l10n_ui_colorTiktokAquaLight" en="TikTok Aqua (Light)" de="Tiktok Aqua (Hell)" />
+    <entry template="TIKTOK_BLACK" brand="TIKTOK" key="l10n_ui_colorTiktokBlack" en="Tiktok Black" de="Tiktok Schwarz" />
+    <entry template="TIKTOK_WHITE" brand="TIKTOK" key="l10n_ui_colorTiktokWhite" en="Tiktok White" de="Tiktok Weiß" />
+    <entry template="RUMBLE_GREEN" brand="RUMBLE" key="l10n_ui_colorRumbleGreen" en="Rumble Green" de="Rumble Grün" />
+    <entry template="RUMBLE_GREEN_DARK" brand="RUMBLE" key="l10n_ui_colorRumbleGreenDark" en="Rumble Green (Dark)" de="Rumble Grün (Dunkel)" />
+    <entry template="RUMBLE_GREEN_LIGHT" brand="RUMBLE" key="l10n_ui_colorRumbleGreenLight" en="Rumble Green (Light)" de="Rumble Grün (Hell)" />
+    <entry template="RUMBLE_BLACK" brand="RUMBLE" key="l10n_ui_colorRumbleBlack" en="Rumble Black" de="Rumble Schwarz" />
+    <entry template="RUMBLE_WHITE" brand="RUMBLE" key="l10n_ui_colorRumbleWhite" en="Rumble White" de="Rumble Weiß" />
+</popularL10NPreset>

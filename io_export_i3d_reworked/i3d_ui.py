@@ -42,10 +42,53 @@ from . import i3d_colorLibrary
 
 
 import math
+import time
 from mathutils import Vector, Matrix, Euler
 
 
 from .tools import *
+
+# ----------------------------
+# UI performance: cache IndexPath calculation
+# ----------------------------
+_I3D_INDEXPATH_CACHE = {"key": None, "value": "", "t": 0.0}
+
+def _i3d_get_indexpath_cached(context, obj, bone_name: str = "") -> str:
+    """Cache the expensive node index path computation.
+    Scrolling the sidebar triggers many redraws; computing IndexPath each time can lag large scenes.
+    """
+    global _I3D_INDEXPATH_CACHE
+    if obj is None:
+        _I3D_INDEXPATH_CACHE["key"] = None
+        _I3D_INDEXPATH_CACHE["value"] = ""
+        _I3D_INDEXPATH_CACHE["t"] = time.monotonic()
+        return "N/A"
+
+    scene = context.scene
+    parent = getattr(obj, "parent", None)
+    parent_name = parent.name if parent else ""
+    parent_child_count = len(parent.children) if parent else 0
+
+    # Cheap invalidation signature + time-based refresh.
+    key = (obj.name, bone_name or "", parent_name, len(scene.objects), parent_child_count)
+
+    now = time.monotonic()
+    if _I3D_INDEXPATH_CACHE["key"] == key and (now - _I3D_INDEXPATH_CACHE["t"]) < 1.0:
+        return _I3D_INDEXPATH_CACHE["value"] or "N/A"
+
+    try:
+        if bone_name:
+            val = dcc.I3DgetNodeIndex(obj.name, bone_name)
+        else:
+            val = dcc.I3DgetNodeIndex(obj.name)
+    except Exception:
+        val = ""
+
+    _I3D_INDEXPATH_CACHE["key"] = key
+    _I3D_INDEXPATH_CACHE["value"] = val
+    _I3D_INDEXPATH_CACHE["t"] = now
+    return val or "N/A"
+
 
 # --- Add-on conflict detection (GIANTS official exporter / original Delta->Vertex tool) ---
 _I3D_CONFLICT_POPUP_SHOWN = False
@@ -75,9 +118,27 @@ def _i3d_get_enabled_conflicts():
 
 
 
+
+# ----------------------------------------------------------------------------
+# Draw-error throttling: Blender will call panel draw many times per second.
+# If a draw exception occurs, printing every time floods the console.
+# ----------------------------------------------------------------------------
+_I3D_DRAW_FAIL_CACHE = {}  # tag -> last error signature
+
+def _i3d_print_draw_fail_once(tag: str, e: Exception):
+    try:
+        sig = f"{type(e).__name__}: {e}"
+        if _I3D_DRAW_FAIL_CACHE.get(tag) == sig:
+            return
+        _I3D_DRAW_FAIL_CACHE[tag] = sig
+    except Exception:
+        pass
+    print(f"[{tag}] draw failed: {e}")
+
 class I3D_OT_ReopenConflictDialog(bpy.types.Operator):
     bl_idname = "i3d.reopen_conflict_dialog"
     bl_label = "Reopen Conflict Dialog"
+    bl_description = "Reopen Conflict Dialog: opens the related window or resource."
     bl_options = {'INTERNAL'}
 
     def execute(self, context):
@@ -101,6 +162,7 @@ class I3D_OT_ReopenConflictDialog(bpy.types.Operator):
 class I3D_OT_AddonConflictDialog(bpy.types.Operator):
     bl_idname = "i3d.addon_conflict_dialog"
     bl_label = "Add-on Conflict Detected"
+    bl_description = "Add-on Conflict Detected."
     bl_options = {'INTERNAL'}
 
     def invoke(self, context, event):
@@ -158,6 +220,7 @@ class I3D_OT_AddonConflictDialog(bpy.types.Operator):
 class I3D_OT_ResolveAddonConflicts(bpy.types.Operator):
     bl_idname = "i3d.resolve_addon_conflicts"
     bl_label = "Resolve Add-on Conflicts"
+    bl_description = "Resolve Add-on Conflicts."
     bl_options = {'INTERNAL'}
 
     def execute(self, context):
@@ -245,6 +308,7 @@ def _i3d_abort_installation_when_safe():
 class I3D_OT_AbortInstallation(bpy.types.Operator):
     bl_idname = "i3d.abort_installation"
     bl_label = "Abort Installation"
+    bl_description = "Abort Installation."
     bl_options = {'INTERNAL'}
 
     use_save_preferences: bpy.props.BoolProperty(
@@ -344,6 +408,15 @@ except:
 
 g_dynamicGUIClsDict = {}
 g_modalsRunning = False
+
+
+# --------------------------------------------------------------
+# Shader folder auto-initialization (session start / file load)
+# --------------------------------------------------------------
+g_autoShaderInitEnabled = True
+_g_autoShaderInitDoneScenes = set()
+_g_autoShaderInitAttempts = {}
+
 
 
 # --------------------------------------------------------------
@@ -634,7 +707,7 @@ def lightScatteringUpdate(self, context):
     node = self.i3D_nodeName
     nodeObj = bpy.data.objects[node]
     if "i3D_isLightScattering" in context.scene.I3D_UIexportSettings:
-        if context.scene.I3D_UIexportSettings["i3D_isLightScattering"]:
+        if context.scene.I3D_UIexportSettings.i3D_isLightScattering:
             if nodeObj.type == 'LIGHT' and nodeObj.data.type == 'SPOT':
                 spot_size = nodeObj.data.spot_size
                 # Convert the cone angle from radians to degrees
@@ -645,7 +718,7 @@ def lightScatteringUpdate(self, context):
 
 def lightScatteringIntensityUpdate(self, context):
     if "i3D_lightScatteringIntensity" in context.scene.I3D_UIexportSettings:
-        intensity = context.scene.I3D_UIexportSettings["i3D_lightScatteringIntensity"]
+        intensity = context.scene.I3D_UIexportSettings.i3D_lightScatteringIntensity
         if intensity < 0:
             setattr(self, "i3D_lightScatteringIntensity", 0)
         elif intensity > 50:
@@ -656,7 +729,7 @@ def lightScatteringConeAngleUpdate(self, context):
     nodeObj = bpy.data.objects[node]
     if "i3D_lightScatteringConeAngle" in context.scene.I3D_UIexportSettings:
         if nodeObj.type == 'LIGHT' and nodeObj.data.type == 'SPOT':
-            myNewSize = context.scene.I3D_UIexportSettings["i3D_lightScatteringConeAngle"]
+            myNewSize = context.scene.I3D_UIexportSettings.i3D_lightScatteringConeAngle
             spot_size = nodeObj.data.spot_size
             # Convert the cone angle from radians to degrees
             spot_size_degrees = spot_size * (180.0 / 3.141592653589793)
@@ -801,8 +874,8 @@ def parameterTemplateSelected(self, context, parameterTemplateId, subTemplateId)
 
     g_disableParameterTemplateSelectedCallback = True
 
-    parametersToHandle = [paramName for paramName, _ in parameterTemplateDict["parameters"].items() if not self.get(paramName + "Bool")]
-    texturesToHandle = [textureName for textureName, _ in parameterTemplateDict["textures"].items() if not self.get(textureName + "Bool")]
+    parametersToHandle = [paramName for paramName, _ in parameterTemplateDict["parameters"].items() if not getattr(self, paramName + "Bool", False)]
+    texturesToHandle = [textureName for textureName, _ in parameterTemplateDict["textures"].items() if not getattr(self, textureName + "Bool", False)]
 
     # Unset checkboxes for all other subtemplates.
     for k, _ in parameterTemplateDict["subtemplates"].items():
@@ -856,8 +929,8 @@ def parameterTemplateSelected(self, context, parameterTemplateId, subTemplateId)
 
         subTemplateId = subTemplateDict["parentId"]
         if subTemplateId is not None:
-            if self.get(subTemplateId + "Bool"):
-                selectedSubTemplateName = self.get(subTemplateId + "_Template")
+            if getattr(self, subTemplateId + "Bool", False):
+                selectedSubTemplateName = getattr(self, subTemplateId + "_Template", "None")
             elif "parentTemplate" in selectedTemplate:
                 selectedSubTemplateName = selectedTemplate["parentTemplate"]
                 setattr(self, subTemplateId + "_Template", selectedSubTemplateName)
@@ -1099,6 +1172,105 @@ def updateDynamicUIClassesForShaderParameters(shaderData, variation_groups, shad
             print(e)
             continue
         else:
+            # Blender 5.0+ behavior: defaults on dynamically created PointerProperty instances
+            # (especially StringProperty with search callbacks) may not be applied reliably.
+            # Explicitly push the resolved template selections/values into the instance so
+            # the Load button works consistently across Blender versions.
+            _prev_disable_pt = None
+            _prev_disable_tu = None
+            _prev_disable_tsp = None
+            try:
+                scene = bpy.context.scene
+                inst = getattr(scene, clssName, None)
+
+                if inst is not None:
+                    global g_disableParameterTemplateSelectedCallback
+                    global g_disableTemplatedParameterUpdatedCallback
+                    global g_disableTemplateSelectedForParameterCallback
+
+                    _prev_disable_pt = g_disableParameterTemplateSelectedCallback
+                    _prev_disable_tu = g_disableTemplatedParameterUpdatedCallback
+                    _prev_disable_tsp = g_disableTemplateSelectedForParameterCallback
+
+                    g_disableParameterTemplateSelectedCallback = True
+                    g_disableTemplatedParameterUpdatedCallback = True
+                    g_disableTemplateSelectedForParameterCallback = True
+
+                    # Sub-template selections (e.g. brandColor/material).
+                    for _sub_id, _info in parameterTemplatesToHandle.items():
+                        try:
+                            setattr(inst, _sub_id + "Bool", bool(_info.get("isCustom", False)))
+                        except Exception:
+                            pass
+                        try:
+                            _val = _info.get("value", "None")
+                            if _val is None or str(_val).strip() == "":
+                                _val = "None"
+                            else:
+                                _val = str(_val)
+                            setattr(inst, _sub_id + "_Template", _val)
+                        except Exception:
+                            pass
+
+                    # Per-parameter template menus (templatedParameterTemplateMenu_...).
+                    for _param_name in parameterTemplate["parameters"].keys():
+                        _menu_name = "templatedParameterTemplateMenu_" + parameterTemplateId + "_" + _param_name
+                        try:
+                            if materialObj is not None and _menu_name in materialObj:
+                                _menu_val = str(materialObj[_menu_name])
+                            else:
+                                _menu_val = "None"
+                            setattr(inst, _menu_name, _menu_val)
+                        except Exception:
+                            pass
+
+                    # Parameter and texture values.
+                    for _param_name, _pv in paramValues.items():
+                        try:
+                            setattr(inst, _param_name + "Bool", bool(_pv.get("isCustom", False)))
+                        except Exception:
+                            pass
+                        try:
+                            _vl = _pv.get("value", None)
+                            if isinstance(_vl, (list, tuple)):
+                                _lst = list(_vl) + [1.0, 1.0, 1.0, 1.0]
+                            else:
+                                try:
+                                    _lst = [float(x) for x in str(_vl).strip().split(" ")] + [1.0, 1.0, 1.0, 1.0]
+                                except Exception:
+                                    _lst = [1.0, 1.0, 1.0, 1.0]
+                            setattr(inst, _param_name + "_0", _lst[0])
+                            setattr(inst, _param_name + "_1", _lst[1])
+                            setattr(inst, _param_name + "_2", _lst[2])
+                            setattr(inst, _param_name + "_3", _lst[3])
+                        except Exception:
+                            pass
+
+                    for _tex_name, _tv in textureValues.items():
+                        try:
+                            setattr(inst, _tex_name + "Bool", bool(_tv.get("isCustom", False)))
+                        except Exception:
+                            pass
+                        try:
+                            _tval = _tv.get("value", "")
+                            if _tval is None:
+                                _tval = ""
+                            setattr(inst, _tex_name, str(_tval))
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            finally:
+                try:
+                    if _prev_disable_pt is not None:
+                        g_disableParameterTemplateSelectedCallback = _prev_disable_pt
+                    if _prev_disable_tu is not None:
+                        g_disableTemplatedParameterUpdatedCallback = _prev_disable_tu
+                    if _prev_disable_tsp is not None:
+                        g_disableTemplateSelectedForParameterCallback = _prev_disable_tsp
+                except Exception:
+                    pass
+
             g_dynamicGUIClsDict[parameterTemplateId] = templateParameterClss
 
 def getShaderDataFromMaterialObj(self, materialObj):
@@ -1138,6 +1310,23 @@ def shaderEnumUpdate(self,context):
     """ Creates and registers dynamic classes for dynamic GUI elements """
 
     global g_dynamicGUIClsDict
+
+    # Remove any per-parameter-template pointer properties we previously registered.
+    # Blender 5.0 removed dict-like access to runtime-defined bpy.props properties, so
+    # clearing only IDProperties isn't enough anymore.
+    for _template_id in [k for k in list(g_dynamicGUIClsDict.keys()) if k not in ("parameters", "textures")]:
+        _prop_name = "I3D_UITemplateParameters_" + _template_id
+        # Best-effort: older Blender stored runtime props in IDProperties.
+        try:
+            if _prop_name in bpy.context.scene:
+                del bpy.context.scene[_prop_name]
+        except Exception:
+            pass
+        # Always remove the Scene RNA property definition.
+        try:
+            delattr(bpy.types.Scene, _prop_name)
+        except Exception:
+            pass
     if bpy.context.scene.get( 'I3D_UIShaderParameters' ):
         del bpy.context.scene[ 'I3D_UIShaderParameters' ]
     try:
@@ -1232,6 +1421,7 @@ class I3D_OT_SelectionToOrigin(bpy.types.Operator):
     """Sets the origin position to the center of the selected vertices/edges/faces"""
     bl_idname = "i3d.selectiontoorigin"
     bl_label = "SelectionToOrigin"
+    bl_description = "SelectionToOrigin: selects items related to the current view."
     bl_options = {'UNDO'}
     CONTEXT_MENU_ICON = "OBJECT_ORIGIN"
 
@@ -1281,6 +1471,7 @@ class I3D_OT_FaceNormalToOrigin(bpy.types.Operator):
     """Sets the origin rotation to equal the orientation of the selected face"""
     bl_idname = "i3d.facenormaltoorigin"
     bl_label = "FaceNormalToOrigin"
+    bl_description = "FaceNormalToOrigin."
     bl_options = {'UNDO'}
     CONTEXT_MENU_ICON = "ORIENTATION_NORMAL"
 
@@ -1347,6 +1538,7 @@ class I3D_OT_FreezeTranslation(bpy.types.Operator):
     """Equals the origin translation with the translation of the parent object"""
     bl_idname = "i3d.freezetranslation"
     bl_label = "FreezeTranslation"
+    bl_description = "FreezeTranslation."
     bl_options = {'UNDO'}
     CONTEXT_MENU_ICON = "CON_LOCLIMIT"
 
@@ -1395,6 +1587,7 @@ class I3D_OT_FreezeRotation(bpy.types.Operator):
     """Equals the origin rotation with the rotation of the parent object"""
     bl_idname = "i3d.freezerotation"
     bl_label = "FreezeRotation"
+    bl_description = "FreezeRotation."
     bl_options = {'UNDO'}
     CONTEXT_MENU_ICON = "CON_ROTLIMIT"
 
@@ -1456,6 +1649,7 @@ class I3D_OT_CreateEmpty(bpy.types.Operator):
     """Creates empty group at selected vertex position or as child of selected object(s) or at root level if nothing selected"""
     bl_idname = "i3d.createempty"
     bl_label = "CreateEmpty"
+    bl_description = "CreateEmpty."
     bl_options = {'UNDO'}
     CONTEXT_MENU_ICON = "OUTLINER_OB_EMPTY"
 
@@ -1532,6 +1726,7 @@ class I3D_OT_AlignYAxis(bpy.types.Operator):
     """Rotate origin towards other objects origin"""
     bl_idname = "i3d.alignyaxis"
     bl_label = "AlignYAxis"
+    bl_description = "AlignYAxis."
     bl_options = {'UNDO'}
     CONTEXT_MENU_ICON = "ORIENTATION_GLOBAL"
 
@@ -1613,15 +1808,90 @@ class I3D_OT_MenuExport( bpy.types.Operator ):
 
     bl_label = "I3D Exporter"
     bl_idname = "i3d.menuexport"
+    bl_description = "Button to open the GIANTS I3D Exporter REWORKED panel in the 3D View Sidebar (N-menu)"
 
     def execute( self, context ):
-        try:    #prevent double registration
-            for cls in classes:
-                bpy.utils.register_class(cls)
-        except:
+        # Switch exporter UI mode to Export (so the correct panel content is shown).
+        try:
+            context.scene.I3D_UIexportSettings.UI_settingsMode = 'exp'
+        except Exception:
             pass
-        return {'FINISHED'}
 
+        opened = False
+        try:
+            wm = bpy.context.window_manager
+            for win in wm.windows:
+                scr = getattr(win, 'screen', None)
+                if scr is None:
+                    continue
+
+                for area in getattr(scr, 'areas', []):
+                    if getattr(area, 'type', None) != 'VIEW_3D':
+                        continue
+
+                    # Ensure sidebar (N-menu) is visible.
+                    try:
+                        for space in getattr(area, 'spaces', []):
+                            if getattr(space, 'type', None) == 'VIEW_3D':
+                                space.show_region_ui = True
+
+                                # Switch the Sidebar tab to our add-on panel category.
+                                # Without this, Blender may keep whatever tab was last active (Item/Tool/etc.).
+                                target_category = "GIANTS I3D Exporter REWORKED"
+
+                                # 1) Direct assignment works in many Blender versions.
+                                try:
+                                    if hasattr(space, "active_panel_category"):
+                                        space.active_panel_category = target_category
+                                except Exception:
+                                    pass
+
+                                # 2) Some builds only update the UI if we use the context operator.
+                                #    This is a best-effort approach: if it fails, the direct assignment above
+                                #    still leaves the correct value set.
+                                try:
+                                    ui_region = None
+                                    for r in getattr(area, 'regions', []):
+                                        if getattr(r, 'type', None) == 'UI':
+                                            ui_region = r
+                                            break
+
+                                    if ui_region is not None:
+                                        override2 = {'window': win, 'screen': scr, 'area': area, 'region': ui_region}
+                                        bpy.ops.wm.context_set_enum(
+                                            override2,
+                                            data_path='space_data.active_panel_category',
+                                            value=target_category
+                                        )
+                                except Exception:
+                                    pass
+                    except Exception:
+                        pass
+
+                    opened = True
+
+                    # Older Blender builds sometimes need a nudge to refresh the panel list after switching tabs.
+                    # This is safe to ignore if unavailable.
+                    try:
+                        override = {'window': win, 'screen': scr, 'area': area}
+                        bpy.ops.wm.redraw_timer(override, type='DRAW_WIN_SWAP', iterations=1)
+                    except Exception:
+                        pass
+
+                    break
+
+                if opened:
+                    break
+        except Exception:
+            opened = False
+
+        if not opened:
+            try:
+                self.report({'WARNING'}, 'No 3D View found to open the GIANTS I3D Exporter panel')
+            except Exception:
+                pass
+
+        return {'FINISHED'}
 
 
 #-------------------------------------------------------------------------------
@@ -1701,7 +1971,9 @@ class I3D_OT_RefreshAddonAfterUpdate(bpy.types.Operator):
 
             # Re-enable add-on.
             try:
-                addon_utils.enable(addon_pkg, default_set=True)
+                # IMPORTANT: do not use default_set=True here; that can reset
+                # add-on preferences (including skipped update versions).
+                addon_utils.enable(addon_pkg)
                 print("[I3D Refresh] Add-on enabled")
             except Exception as e:
                 print(f"[I3D Refresh] Enable failed: {e}")
@@ -1721,7 +1993,9 @@ class I3D_OT_RefreshAddonAfterUpdate(bpy.types.Operator):
 
             # Disable first (unregisters classes cleanly).
             try:
-                addon_utils.disable(addon_pkg, default_set=True)
+                # IMPORTANT: do not use default_set=True here; that can reset
+                # add-on preferences (including skipped update versions).
+                addon_utils.disable(addon_pkg)
                 print("[I3D Refresh] Add-on disabled")
             except Exception as e:
                 print(f"[I3D Refresh] Disable failed: {e}")
@@ -1797,7 +2071,7 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
             if obj.type == 'ARMATURE' and context.mode == 'EDIT_ARMATURE':
                 active_bone = context.active_bone
                 if active_bone:  # Check if there's an active edit bone
-                    first_row_left.label(text=dcc.I3DgetNodeIndex(obj.name, active_bone.name))
+                    first_row_left.label(text=_i3d_get_indexpath_cached(context, obj, active_bone.name))
                     first_row_right.label(text=active_bone.name)
 
                     second_row.prop(active_bone, "I3D_XMLconfigBool", text="")
@@ -1806,7 +2080,7 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                     disabled_row.prop(active_bone, "I3D_XMLconfigID", text="")
                     disabled_row.operator("i3d.panelxmlidentification_buttonadd", text="Use Node Name")
             else:
-                first_row_left.label(text=dcc.I3DgetNodeIndex(obj.name))
+                first_row_left.label(text=_i3d_get_indexpath_cached(context, obj))
                 first_row_right.label(text=obj.name)
 
                 second_row.prop(obj, "I3D_XMLconfigBool", text="")
@@ -1922,10 +2196,8 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                 col.prop( context.scene.I3D_UIexportSettings, "i3D_exportSnowHeapMode" )
                 split = box.split()
                 split.prop( context.scene.I3D_UIexportSettings, "i3D_exportAxisOrientations"  )
-                split = box.split()
-
             # -----------------------------------------
-            # "Game Location" is now configured in addon preferences (FS25 Game Path).
+            # "Game Location" is now configured in addon preferences (FS25 Game Path). in addon preferences (FS25 Game Path).
             # "XML config File" box
             box = layout.box()
             row = box.row()
@@ -1991,6 +2263,8 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                 row.prop( context.scene.I3D_UIexportSettings, "i3D_exportFileLocation" )
                 row.operator("i3d.openi3dfilebrowser",icon = 'FILEBROWSER',text = "")
             #-----------------------------------------
+            row = layout.row()
+            row.operator("i3d.colorlib_clear_preview_material_nodes", text="Clear all temporary preview material shader Nodes", icon='X')
             row = layout.row( align = True )
             if(bpy.context.scene.I3D_UIexportSettings.i3D_exportUseSoftwareFileName):
                 row.enabled =  not(bpy.data.filepath == "")
@@ -2279,7 +2553,7 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                     scatteringEnabled = False
                     currentNodeIsSpotLight = False
                     if "i3D_nodeName" in context.scene.I3D_UIexportSettings:
-                        currentNode = bpy.data.objects[context.scene.I3D_UIexportSettings["i3D_nodeName"]]
+                        currentNode = bpy.data.objects[context.scene.I3D_UIexportSettings.i3D_nodeName]
                         if currentNode.type == 'LIGHT' and (currentNode.data.type == 'SPOT' or currentNode.data.type == 'POINT'):
                             scatteringEnabled = True
                             currentNodeIsSpotLight = currentNode.data.type == 'SPOT'
@@ -2288,10 +2562,10 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                     propRow.enabled = scatteringEnabled
                     propRow = col.row()
                     propRow.prop( context.scene.I3D_UIexportSettings, "i3D_lightScatteringIntensity")
-                    propRow.enabled = scatteringEnabled and context.scene.I3D_UIexportSettings["i3D_isLightScattering"]
+                    propRow.enabled = scatteringEnabled and context.scene.I3D_UIexportSettings.i3D_isLightScattering
                     propRow = col.row()
                     propRow.prop( context.scene.I3D_UIexportSettings, "i3D_lightScatteringConeAngle")
-                    propRow.enabled = currentNodeIsSpotLight and context.scene.I3D_UIexportSettings["i3D_isLightScattering"]
+                    propRow.enabled = currentNodeIsSpotLight and context.scene.I3D_UIexportSettings.i3D_isLightScattering
 
             #-----------------------------------------
             row = layout.row( align = True )
@@ -2483,6 +2757,12 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                     row.prop(context.scene.I3D_UIexportSettings, 'i3D_refractionMapWithSSRData')
                     row.enabled = context.scene.I3D_UIexportSettings.i3D_refractionMap
 
+
+                # Load / Apply (moved into Shader Setup)
+                box = ss_box.box()
+                row = box.row(align=True)
+                row.operator("i3d.paneladdshader_buttonload")
+                row.operator("i3d.paneladdshader_buttonadd")
             # Color Library (below Refraction Map box)
             cl_box = layout.box()
             cl_row = cl_box.row()
@@ -2498,7 +2778,15 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                 try:
                     i3d_colorLibrary.draw_color_library(cl_box, context)
                 except Exception as e:
-                    print(f"[I3D Color Library] draw failed: {e}")
+                    _i3d_print_draw_fail_once("I3D Color Library", e)
+
+
+            # Vehicle Light Setup Tool (between Color Library and Material Tools)
+            try:
+                from .tools import i3d_vehicle_light_tool
+                i3d_vehicle_light_tool.draw_vehicle_light_setup_tool(layout, context)
+            except Exception as e:
+                _i3d_print_draw_fail_once("I3D Vehicle Light Tool", e)
 
             # Material Tools (GamerDesigns / Modders Edge)
             mat_tools_outer_box = layout.box()
@@ -2567,23 +2855,32 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                 row = mat_tools_box.row(); row.alignment = 'CENTER'
                 row.label(text="Made by GamerDesigns")
 
-            box = layout.box()
-            row = box.row()
-            row.prop(   context.scene.I3D_UIexportSettings,
-                        "UI_materialTools",
-                        text = "Tools",
-                        icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_materialTools else 'TRIA_RIGHT',
-                        icon_only = False,
-                        emboss = False )
+            #-----------------------------------------
+            # FS22 → FS25 Convert Tool (Material/Shader Tab)
+            # NOTE: This folder should stay at the VERY BOTTOM of the Material tab.
+            #-----------------------------------------
+            convert_outer_box = layout.box()
+            row = convert_outer_box.row()
+            row.prop(
+                context.scene.I3D_UIexportSettings,
+                "UI_materialTools",
+                text="Tools",
+                icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_materialTools else 'TRIA_RIGHT',
+                icon_only=False,
+                emboss=False
+            )
             if context.scene.I3D_UIexportSettings.UI_materialTools:
-                row = box.row()
+                row = convert_outer_box.row()
                 row.operator("i3d.paneladdshader_buttonconvertfs22fs25")
 
-            row = layout.row()
-            row.operator( "i3d.paneladdshader_buttonload")
-            row.operator( "i3d.paneladdshader_buttonadd")
 
-        # "Tools" tab
+#-----------------------------------------
+
+        # row = layout.row( )
+        # row.operator( "i3d.panelexport_buttonclose", icon = 'X' )
+
+
+# "Tools" tab
         #-----------------------------------------
         elif 'tools' == context.scene.I3D_UIexportSettings.UI_settingsMode:
             box = layout.box()
@@ -2613,18 +2910,18 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                 split = row.split(factor=0.4)
                 col_left = split.column()
                 col_left.operator(
-                    "wm.url_open",
+                    "i3d.open_english_tutorial",
                     text="English",
                     icon='PLAY'
-                ).url = "https://youtu.be/NzDNftZ0_gM"
+                )
 
                 split = split.split(factor=0.4)
                 col_right = split.column()
                 col_right.operator(
-                    "wm.url_open",
+                    "i3d.open_french_tutorial",
                     text="French",
                     icon='PLAY'
-                ).url = "https://www.youtube.com/watch?v=RHeDCo2Ud8Q"
+                )
 
                 row = delta_box.row()
                 row.alignment = 'CENTER'
@@ -2686,6 +2983,41 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
                     row.operator("i3d.splinetoolpopup")
                 except:
                     pass
+
+
+            #-----------------------------------------
+            # Track Array Tools
+            # Created by DtapGaming and RMC Gamer Designs
+            #-----------------------------------------
+            track_outer_box = layout.box()
+            row = track_outer_box.row()
+            row.prop(
+                context.scene.I3D_UIexportSettings,
+                "UI_trackArrayToolsMain",
+                text="Track Array Tools",
+                icon='TRIA_DOWN' if context.scene.I3D_UIexportSettings.UI_trackArrayToolsMain else 'TRIA_RIGHT',
+                icon_only=False,
+                emboss=False
+            )
+            # Always-available quick button (even when collapsed)
+            row.operator("i3d.import_track_setup_system", text="", icon='FILE_BLEND')
+            row.operator("i3d.generate_track_curve_from_guides", text="", icon='CURVE_DATA')
+
+            if context.scene.I3D_UIexportSettings.UI_trackArrayToolsMain:
+                track_box = track_outer_box.box()
+                row = track_box.row()
+                row.alignment = 'CENTER'
+                row.label(text="Created by DtapGaming and RMC Gamer Designs")
+
+                row = track_box.row()
+                row.operator("i3d.import_track_setup_system", icon='FILE_BLEND')
+
+                row = track_box.row()
+                row.operator("i3d.generate_track_curve_from_guides", text="Generate Custom Track Setup System From Guides", icon='CURVE_DATA')
+
+                row = track_box.row()
+                op = row.operator("wm.url_open", text="Open Tutorial (YouTube)", icon='URL')
+                op.url = "https://www.youtube.com/watch?v=J7RJttB5a-E"
             #-----------------------------------------
             # Modders Edge Toolset (Tools + Cleanup)
             # Credit: GamerDesigns (MIT License)
@@ -2902,7 +3234,6 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
 
         # row = layout.row( )
         # row.operator( "i3d.panelexport_buttonclose", icon = 'X' )
-
     def getMaterials(self, context):
         result = [(mat.name, mat.name, "", "NONE", i + 1) for i, mat in enumerate(bpy.data.materials)]
         result.insert(0, ("None", "None", "", "NONE", 0))
@@ -3001,6 +3332,7 @@ class I3D_UIMaterialTemplateProperties(bpy.types.PropertyGroup):
 class I3D_OT_MaterialTemplateCategoryMenu(bpy.types.Operator):
     bl_idname = "i3d.material_template_category_menu_entry_selected"
     bl_label = "Select material template category menu item"
+    bl_description = "Select material template category menu item: selects items related to the current view."
 
     categoryName: bpy.props.StringProperty()
 
@@ -3016,6 +3348,7 @@ class I3D_OT_MaterialTemplateCategoryMenu(bpy.types.Operator):
 class I3D_OT_MaterialTemplateCategoryMenuEntryExpand(bpy.types.Operator):
     bl_idname = "i3d.material_template_category_menu_entry_expand"
     bl_label = "Expand material template category menu item"
+    bl_description = "Expand material template category menu item."
 
     categoryName: bpy.props.StringProperty()
 
@@ -3129,6 +3462,7 @@ class I3D_PT_MaterialTemplates(bpy.types.Panel):
 class I3D_OT_BitmaskEditor(bpy.types.Operator):
     bl_idname = "i3d.bitmaskeditor"
     bl_label = "Bitmask Editor"
+    bl_description = "Bitmask Editor."
 
     def updtVal(self, context):
         str_dec = stringUtil.int2string_base(int(self.mask_value,10),10)
@@ -3338,12 +3672,16 @@ class I3D_OT_modal_active_object(bpy.types.Operator):
     """Tooltip"""
     bl_idname = "i3d.active_object"
     bl_label = "Active Object"
+    bl_description = "Active Object."
 
     # @classmethod
     # def poll(cls, context):
     #     return context.area.type == 'OUTLINER'
 
     def modal(self, context, event):
+        if event.type != "TIMER":
+            return {'PASS_THROUGH'}
+
         global g_disableSelectedMaterialEnumUpdateCallback
 
         currentObjName = context.scene.I3D_UIexportSettings.UI_ActiveObjectName
@@ -3417,19 +3755,37 @@ class I3D_OT_modal_active_object(bpy.types.Operator):
             context.scene.I3D_UIexportSettings.UI_ActiveObjectName = activeObject.name
 
         return {'PASS_THROUGH'}
-
     def execute(self, context):
-        context.window_manager.modal_handler_add(self)
+        wm = context.window_manager
+        if wm is None:
+            return {'CANCELLED'}
+        # Run this modal on a timer only to avoid UI lag during scroll/mouse move
+        self._timer = wm.event_timer_add(0.25, window=context.window)
+        wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
+
+    def cancel(self, context):
+        wm = getattr(context, 'window_manager', None)
+        t = getattr(self, '_timer', None)
+        if wm is not None and t is not None:
+            try:
+                wm.event_timer_remove(t)
+            except Exception:
+                pass
+        self._timer = None
         
 class I3D_OT_modal_predef_check(bpy.types.Operator):
     """Tooltip"""
     bl_idname = "i3d.predef_check"
     bl_label = "Predefined has change check"
+    bl_description = "Predefined has change check."
 
     def modal(self, context, event):
 
-        if event.type in {"LEFTMOUSE","RET","INBETWEEN_MOUSEMOVE","NUMPAD_ENTER"}:# and event.value == "RELEASE":      #does not work since modal notification is before change of active object
+        if event.type != "TIMER":
+            return {'PASS_THROUGH'}
+
+        if True:
             hasNoChange = True
             predefineName =  context.scene.I3D_UIexportSettings.i3D_selectedPredefined
             physics = dcc.UIgetPredefinePhysicItems(self, context)
@@ -3457,16 +3813,31 @@ class I3D_OT_modal_predef_check(bpy.types.Operator):
             context.scene.I3D_UIexportSettings.i3D_predefHasChanged = not hasNoChange
 
         return {'PASS_THROUGH'}
-
     def execute(self, context):
-        context.window_manager.modal_handler_add(self)
+        wm = context.window_manager
+        if wm is None:
+            return {'CANCELLED'}
+        # Timer-driven predef check to avoid processing on every UI event
+        self._timer = wm.event_timer_add(0.50, window=context.window)
+        wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
+
+    def cancel(self, context):
+        wm = getattr(context, 'window_manager', None)
+        t = getattr(self, '_timer', None)
+        if wm is not None and t is not None:
+            try:
+                wm.event_timer_remove(t)
+            except Exception:
+                pass
+        self._timer = None
 
 class I3D_OT_PanelUpdateXMLi3dmapping( bpy.types.Operator):
     """ Textfield Operator """
 
     bl_idname= "i3d.panelupdatexmli3dmapping"
     bl_label = "XML i3d mapping check"
+    bl_description = "XML i3d mapping check."
     bl_options = {'REGISTER'}
 
     def execute(self,context):
@@ -3493,6 +3864,7 @@ class I3D_OT_PanelExport_ButtonAttr( bpy.types.Operator ):
 
     bl_idname  = "i3d.panelexport_buttonattr"
     bl_label   = "Attributes"
+    bl_description = "Attributes: exports using the current settings."
     state      : bpy.props.IntProperty()
 
     def execute( self, context ):
@@ -3509,7 +3881,19 @@ class I3D_OT_PanelExport_ButtonExport( bpy.types.Operator ):
 
     bl_idname  = "i3d.panelexport_buttonexport"
     bl_label   = "Export"
+    bl_description = "Exports I3D files or updates XML depending on the selected action."
     state      : bpy.props.IntProperty()
+    @classmethod
+    def description(cls, context, properties):
+        st = int(getattr(properties, "state", 0) or 0)
+        if st == 1:
+            return "Export All: exports all export-enabled objects using the current export settings."
+        if st == 2:
+            return "Export Selected: exports only the currently selected objects using the current export settings."
+        if st == 3:
+            return "Update XML: updates XML mapping IDs/config data without exporting geometry."
+        return cls.bl_description
+
 
     def execute( self, context ):
         # bpy.ops.wm.console_toggle()     #DEBUG command
@@ -3561,6 +3945,7 @@ class I3D_OT_PanelTools_ButtonChangelog( bpy.types.Operator ):
 
     bl_idname  = "i3d.paneltools_buttonchangelog"
     bl_label   = "Show Changelog"
+    bl_description = "Show Changelog."
 
     def execute( self, context ):
         i3d_export.I3DShowChangelog()
@@ -3571,6 +3956,7 @@ class I3D_OT_PanelRemoveXMLPath_ButtonRemove( bpy.types.Operator):
 
     bl_idname= "i3d.panelremovexmlpath_buttonremove"
     bl_label = "XMLPath"
+    bl_description = "XMLPath: clears/removes the current selection."
     state : bpy.props.StringProperty()
 
     def execute(self,context):
@@ -3582,11 +3968,29 @@ class I3D_OT_PanelAddShader_ButtonLoad( bpy.types.Operator):
 
     bl_idname= "i3d.paneladdshader_buttonload"
     bl_label = "Load"
+    bl_description = "Load."
 
     def execute(self,context):
         """ Creates and registers dynamic classes for dynamic GUI elements """
 
         global g_dynamicGUIClsDict, g_disableShaderVariationEnumUpdateCallback
+
+        # Remove any per-parameter-template pointer properties we previously registered.
+        # Blender 5.0 removed dict-like access to runtime-defined bpy.props properties, so
+        # clearing only IDProperties isn't enough anymore.
+        for _template_id in [k for k in list(g_dynamicGUIClsDict.keys()) if k not in ("parameters", "textures")]:
+            _prop_name = "I3D_UITemplateParameters_" + _template_id
+            # Best-effort: older Blender stored runtime props in IDProperties.
+            try:
+                if _prop_name in bpy.context.scene:
+                    del bpy.context.scene[_prop_name]
+            except Exception:
+                pass
+            # Always remove the Scene RNA property definition.
+            try:
+                delattr(bpy.types.Scene, _prop_name)
+            except Exception:
+                pass
 
         #delete previous values
         if bpy.context.scene.get( 'I3D_UIShaderParameters' ):
@@ -3732,8 +4136,10 @@ class I3D_OT_PanelAddShader_ButtonConvertFs22Fs25(bpy.types.Operator):
 
     bl_idname = "i3d.paneladdshader_buttonconvertfs22fs25"
     bl_label = "Convert FS22 -> FS25"
+    bl_description = "Convert FS22 -> FS25."
 
     def execute(self, context):
+
         gamePath = getGamePath()
         if gamePath == "":
             gamePath = bpy.context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay
@@ -3746,6 +4152,7 @@ class I3D_OT_PanelAddShader_ButtonAdd( bpy.types.Operator):
 
     bl_idname= "i3d.paneladdshader_buttonadd"
     bl_label = "Apply"
+    bl_description = "Apply: applies the current selection to the active material."
 
     def execute(self,context):
         """ Creates and registers dynamic classes for dynamic GUI elements """
@@ -3812,14 +4219,14 @@ class I3D_OT_PanelAddShader_ButtonAdd( bpy.types.Operator):
                     except:
                         i = i[1]
                     if k.endswith("Bool"):
-                        if (k in context.scene.I3D_UIShaderParameters and context.scene.I3D_UIShaderParameters[k]) or (i['default'] and not k in context.scene.I3D_UIShaderParameters):      #default test, since default values are not accesable from the API
+                        if (hasattr(context.scene.I3D_UIShaderParameters, k) and getattr(context.scene.I3D_UIShaderParameters, k)) or (i['default'] and not hasattr(context.scene.I3D_UIShaderParameters, k)):      #default test, since default values are not accesable from the API
                             name = "customParameter_"+k[:-4]        #add prefix customParameter_ and remove "Bool" postfix
                             postfix = ['_0','_1','_2','_3']
                             value = ''
                             for postf in postfix:
                                 postf_key = k[:-4]+postf
-                                if postf_key in context.scene.I3D_UIShaderParameters:
-                                    value = value + str(bpy.context.scene.I3D_UIShaderParameters[postf_key]) + " "
+                                if hasattr(context.scene.I3D_UIShaderParameters, postf_key):
+                                    value = value + str(getattr(bpy.context.scene.I3D_UIShaderParameters, postf_key)) + " "
                                 else:
                                     try:
                                         value = value + str(g_dynamicGUIClsDict["parameters"].__annotations__[postf_key].keywords['default']) + " "
@@ -3827,8 +4234,8 @@ class I3D_OT_PanelAddShader_ButtonAdd( bpy.types.Operator):
                                         value = value + str(g_dynamicGUIClsDict["parameters"].__annotations__[postf_key][1]['default']) + " "
                             value = value.strip()
                             #legacy check
-                            if k[:-4] in context.scene.I3D_UIShaderParameters and value == '':
-                                value = bpy.context.scene.I3D_UIShaderParameters[k[:-4]]
+                            if hasattr(context.scene.I3D_UIShaderParameters, k[:-4]) and value == '':
+                                value = getattr(bpy.context.scene.I3D_UIShaderParameters, k[:-4])
                             elif value == '':
                                 try:
                                     value = g_dynamicGUIClsDict["parameters"].__annotations__[k[:-4]].keywords['default']
@@ -3843,10 +4250,10 @@ class I3D_OT_PanelAddShader_ButtonAdd( bpy.types.Operator):
                     except:
                         i = i[1]
                     if k.endswith("Bool"):
-                        if (k in context.scene.I3D_UIShaderTextures and context.scene.I3D_UIShaderTextures[k]) or (i['default'] and not k in context.scene.I3D_UIShaderTextures):
+                        if (hasattr(context.scene.I3D_UIShaderTextures, k) and getattr(context.scene.I3D_UIShaderTextures, k)) or (i['default'] and not hasattr(context.scene.I3D_UIShaderTextures, k)):
                             name = "customTexture_"+k[:-4]        #add prefix customParameter_ and remove "Bool" postfix
-                            if k[:-4] in context.scene.I3D_UIShaderTextures:
-                                value = bpy.context.scene.I3D_UIShaderTextures[k[:-4]]
+                            if hasattr(context.scene.I3D_UIShaderTextures, k[:-4]):
+                                value = getattr(bpy.context.scene.I3D_UIShaderTextures, k[:-4])
                             else:
                                 try:
                                     value = g_dynamicGUIClsDict["textures"].__annotations__[k[:-4]].keywords['default']
@@ -3972,6 +4379,7 @@ class I3D_OT_PanelExport_ButtonClose( bpy.types.Operator ):
 
     bl_idname  = "i3d.panelexport_buttonclose"
     bl_label   = "Close"
+    bl_description = "Close: exports using the current settings."
 
     def execute( self, context ):
         for cls in reversed(classes):
@@ -3998,6 +4406,7 @@ class I3D_OT_PanelOpenXMLFilebrowser(bpy.types.Operator,bpy_extras.io_utils.Impo
 
     bl_idname = "i3d.openxmlfilebrowser"
     bl_label = "select XML"
+    bl_description = "select XML: selects items related to the current view."
     filter_glob: bpy.props.StringProperty( default='*.xml', options={'HIDDEN'} )
 
     def execute(self, context):
@@ -4100,6 +4509,7 @@ class I3D_OT_PanelOpenI3DFilebrowser(bpy.types.Operator,bpy_extras.io_utils.Impo
 
     bl_idname = "i3d.openi3dfilebrowser"
     bl_label = "Set i3d File"
+    bl_description = "Set i3d File: opens the related window or resource."
     filter_glob: bpy.props.StringProperty( default='*.i3d', options={'HIDDEN'} )
 
     def execute(self, context):
@@ -4120,6 +4530,7 @@ class I3D_OT_PanelOpenDDSFilebrowser(bpy.types.Operator,bpy_extras.io_utils.Impo
 
     bl_idname = "i3d.openddsfilebrowser"
     bl_label = "Set dds File"
+    bl_description = "Set dds File: opens the related window or resource."
     filter_glob: bpy.props.StringProperty( default='*.dds', options={'HIDDEN'} )
 
     def execute(self, context):
@@ -4140,6 +4551,7 @@ class I3D_OT_PanelOpenIESFilebrowser(bpy.types.Operator, bpy_extras.io_utils.Imp
 
     bl_idname = "i3d.openiesfilebrowser"
     bl_label = "Set ies File"
+    bl_description = "Set ies File: opens the related window or resource."
     filter_glob: bpy.props.StringProperty( default='*.ies', options={'HIDDEN'} )
 
     def execute(self, context):
@@ -4161,6 +4573,7 @@ class I3D_OT_PanelTools_Button( bpy.types.Operator ):
 
     bl_idname  = "i3d.paneltools_button"
     bl_label   = ""
+    bl_description = "i3d.paneltools_button."
     state      : bpy.props.IntProperty()
 
     def execute( self, context ):
@@ -4367,15 +4780,17 @@ class I3D_UIexportSettings( bpy.types.PropertyGroup ):
     UI_showLightAttributes  : bpy.props.BoolProperty   ( name = "Show Light Attributes", default = False )
     UI_lightAttributes      : bpy.props.BoolProperty   ( name = "Light Attributes",      default = False )
     UI_ddsExportOptions     : bpy.props.BoolProperty   ( name = "DDS Export Options",    default = False )
-    UI_shaderFolder         : bpy.props.BoolProperty   ( name = "Shaders Folder",        default = True )
-    UI_shaderSetup          : bpy.props.BoolProperty   ( name = "Shader Setup",         default = True )
-    UI_colorLibrary         : bpy.props.BoolProperty   ( name = "Color Library",         default = True )
-    UI_customTools          : bpy.props.BoolProperty   ( name = "Custom Tools",          default = True )
-    UI_deltaVertexTool      : bpy.props.BoolProperty   ( name = "Delta → Vertex Color (Roof Snow Heap Tool)", default = True )
-    UI_meToolsMain          : bpy.props.BoolProperty   ( name = "Modders Edge Tools",       default = False )
-    UI_meMaterialToolsMain  : bpy.props.BoolProperty   ( name = "Material Tools",         default = False )
-    UI_meMaterialCleanup     : bpy.props.BoolProperty   ( name = "Material Cleanup",       default = False )
-    UI_meMaterialReplace     : bpy.props.BoolProperty   ( name = "Replace Material A → B",   default = False )
+    UI_shaderFolder         : bpy.props.BoolProperty   ( name = "Shaders Folder",        default = False, options={'SKIP_SAVE'} )
+    UI_shaderSetup          : bpy.props.BoolProperty   ( name = "Shader Setup",         default = False, options={'SKIP_SAVE'} )
+    UI_colorLibrary         : bpy.props.BoolProperty   ( name = "Color Library",         default = False, options={'SKIP_SAVE'} )
+    UI_customTools          : bpy.props.BoolProperty   ( name = "Custom Tools",          default = False, options={'SKIP_SAVE'} )
+    UI_deltaVertexTool      : bpy.props.BoolProperty   ( name = "Delta → Vertex Color (Roof Snow Heap Tool)", default = False, options={'SKIP_SAVE'} )
+    UI_meToolsMain          : bpy.props.BoolProperty   ( name = "Modders Edge Tools",       default = False , options={'SKIP_SAVE'} )
+    
+    UI_trackArrayToolsMain  : bpy.props.BoolProperty   ( name = "Track Array Tools",       default = False , options={'SKIP_SAVE'} )
+    UI_meMaterialToolsMain  : bpy.props.BoolProperty   ( name = "Material Tools",          default = False , options={'SKIP_SAVE'} )
+    UI_meMaterialCleanup     : bpy.props.BoolProperty   ( name = "Material Cleanup",       default = False , options={'SKIP_SAVE'} )
+    UI_meMaterialReplace     : bpy.props.BoolProperty   ( name = "Replace Material A → B",   default = False , options={'SKIP_SAVE'} )
 
     me_replace_scope          : bpy.props.EnumProperty(
         name="Scope",
@@ -4465,6 +4880,20 @@ class I3D_UIexportSettings( bpy.types.PropertyGroup ):
     )
 
     i3D_exportSnowHeapMode         : bpy.props.BoolProperty ( name = "Snow Heap Mode", description="Exports vertex colors in linear space for snowHeapShader deformation (no sRGB conversion).", default = False )
+
+    # ------------------------------------------------------------
+    # Color Library XML Export - L10N naming / dictionaries
+    i3D_exportColorLibrariesGenerateL10N : bpy.props.BoolProperty(
+        name = "Generate English L10N",
+        description = "When exporting ColorConfigurations.xml from the Color Library XML tool, replace wrapper titles and color names with $l10n_* keys and write L10N dictionary files next to the export.",
+        default = True
+    )
+
+    i3D_exportColorLibrariesGermanL10N : bpy.props.BoolProperty(
+        name = "Generate German L10N (Online)",
+        description = "If enabled and Blender has online access, also generate a German L10N dictionary for Color Library XML exports. (Popular Library uses a local preset; 'My Color Library' and wrapper titles may use online translation.)",
+        default = True
+    )
 
     i3D_exportRelativePaths       : bpy.props.BoolProperty   ( name = "Export Relative Paths",description="Export File Paths relative to the *.i3d File",      default = dcc.SETTINGS_UI['i3D_exportRelativePaths']['defaultValue'])
     i3D_exportGameRelativePath       : bpy.props.BoolProperty   ( name = "Export Game Relative Path",description="Export File Paths relative to the Game Installation Path",       default = dcc.SETTINGS_UI['i3D_exportGameRelativePath']['defaultValue'], update=setExportRelativePath  )
@@ -4665,6 +5094,104 @@ class I3D_UIexportSettings( bpy.types.PropertyGroup ):
 #-------------------------------------------------------------------------------
 #   Handlers
 #-------------------------------------------------------------------------------
+
+# --------------------------------------------------------------
+# Shader folder auto init
+# --------------------------------------------------------------
+# The shader folder path (scene property) can persist across sessions, but
+# the dynamic UI (parameter templates, variation dropdowns, etc.) is rebuilt
+# at runtime by shaderEnumUpdate(). On Blender restart, the path will look
+# "filled in" while the runtime classes are not initialized yet, which makes
+# shader tools appear broken until the user clicks "Detect Path".
+#
+# We auto-run a best-effort init once per scene load if a shader folder path
+# is already present.
+
+def _i3d_autoinit_shader_ui_timer():
+    """Auto-run shaderEnumUpdate once per scene after startup / file load.
+
+    Returns:
+        None to stop the timer, or a float (seconds) to retry later.
+    """
+    global g_autoShaderInitEnabled, _g_autoShaderInitDoneScenes, _g_autoShaderInitAttempts
+
+    if not g_autoShaderInitEnabled:
+        return None
+
+    ctx = bpy.context
+    scene = getattr(ctx, "scene", None)
+    if scene is None:
+        return 0.5
+
+    # Scene export settings might not exist yet if registration hasn't completed.
+    settings = getattr(scene, "I3D_UIexportSettings", None)
+    if settings is None:
+        return 0.5
+
+    scene_ptr = scene.as_pointer()
+    if scene_ptr in _g_autoShaderInitDoneScenes:
+        return None
+
+    try:
+        shader_folder_raw = getattr(settings, "i3D_shaderFolderLocation", "") or ""
+        if shader_folder_raw.strip() == "":
+            _g_autoShaderInitDoneScenes.add(scene_ptr)
+            return None
+
+        # If we're using a portable $data/... path, ensure game path is available first.
+        if shader_folder_raw.startswith("$"):
+            game_path = getGamePath() or getattr(settings, "i3D_gameLocationDisplay", "") or ""
+            if not game_path:
+                # Wait a bit; load_handler will usually populate this.
+                raise RuntimeError("Game path not initialized yet for $data shader folder resolution")
+
+        # Ensure shader enum is valid for the directory
+        shader_items = I3D_PT_PanelExport.getShadersFromDirectory(settings, ctx)
+        shader_ids = [t[0] for t in shader_items] if shader_items else []
+        if shader_ids and getattr(settings, "i3D_shaderEnum", None) not in shader_ids:
+            settings.i3D_shaderEnum = shader_ids[0]
+
+        # Build the runtime UI classes
+        shaderEnumUpdate(settings, ctx)
+
+        _g_autoShaderInitDoneScenes.add(scene_ptr)
+        return None
+
+    except Exception as e:
+        attempts = _g_autoShaderInitAttempts.get(scene_ptr, 0) + 1
+        _g_autoShaderInitAttempts[scene_ptr] = attempts
+
+        if attempts < 10:
+            return 0.5
+
+        print(f"[I3D] Auto-init shader UI failed after {attempts} attempts: {e}")
+        _g_autoShaderInitDoneScenes.add(scene_ptr)
+        return None
+
+
+def schedule_i3d_shader_autoinit(force=False):
+    """Schedule the shader UI auto-init timer (safe to call repeatedly)."""
+    global _g_autoShaderInitDoneScenes, _g_autoShaderInitAttempts
+
+    scene = getattr(bpy.context, "scene", None)
+    if scene is not None:
+        scene_ptr = scene.as_pointer()
+        if force:
+            _g_autoShaderInitAttempts.pop(scene_ptr, None)
+            _g_autoShaderInitDoneScenes.discard(scene_ptr)
+
+    try:
+        if bpy.app.timers.is_registered(_i3d_autoinit_shader_ui_timer):
+            return
+    except Exception:
+        # Older Blender builds may not expose is_registered reliably
+        pass
+
+    try:
+        bpy.app.timers.register(_i3d_autoinit_shader_ui_timer, first_interval=0.35)
+    except Exception as e:
+        print(f"[I3D] Unable to schedule shader auto-init timer: {e}")
+
 @persistent
 def load_handler(dummy):
     """ not executed if addon is enabled in the preferences, only on load file (eg. startup or load file)"""
@@ -4690,10 +5217,39 @@ def load_handler(dummy):
                     game_path = auto_path
                     print("Auto-detected game path:", auto_path)
 
-            # Keep legacy scene setting in sync (the addon still reads from this in many places)
-            if 'i3D_gameLocationDisplay' in bpy.context.scene.I3D_UIexportSettings:
-                if bpy.context.scene.I3D_UIexportSettings['i3D_gameLocationDisplay'] != game_path:
-                    bpy.context.scene.I3D_UIexportSettings['i3D_gameLocationDisplay'] = game_path
+                        # Keep scene export setting in sync (many parts of the addon read from this)
+            scene_settings = bpy.context.scene.I3D_UIexportSettings
+
+            # If a legacy IDProperty exists, migrate it into the RNA property BEFORE cleaning it up.
+            legacy_keys = set()
+            try:
+                legacy_keys = set(scene_settings.keys())
+            except Exception:
+                legacy_keys = set()
+
+            legacy_val = ""
+            if "i3D_gameLocationDisplay" in legacy_keys:
+                try:
+                    legacy_val = scene_settings.get("i3D_gameLocationDisplay", "") or ""
+                except Exception:
+                    legacy_val = ""
+
+            # If prefs/autodetect are empty but the legacy value is valid, keep it (and persist it back to prefs)
+            if not game_path and legacy_val and os.path.isdir(legacy_val):
+                game_path = legacy_val
+                prefs.game_install_path = legacy_val
+
+            if getattr(scene_settings, "i3D_gameLocationDisplay", "") != game_path:
+                scene_settings.i3D_gameLocationDisplay = game_path
+
+            # Remove ONLY the legacy IDProperty key (do NOT touch the RNA property)
+            if "i3D_gameLocationDisplay" in legacy_keys:
+                try:
+                    del scene_settings["i3D_gameLocationDisplay"]
+                except Exception:
+                    pass
+
+
     except Exception as e:
         print(e)
 
@@ -4706,8 +5262,13 @@ def load_handler(dummy):
     }
     for oldAttrName, newAttrName in legacySettingsAttributeMap.items():
         if oldAttrName in bpy.context.scene.I3D_UIexportSettings:
-            bpy.context.scene.I3D_UIexportSettings[newAttrName] = bpy.context.scene.I3D_UIexportSettings[oldAttrName]
-            del bpy.context.scene.I3D_UIexportSettings[oldAttrName]
+            old_val = bpy.context.scene.I3D_UIexportSettings.get(oldAttrName)
+            if old_val is None and hasattr(bpy.context.scene.I3D_UIexportSettings, oldAttrName):
+                old_val = getattr(bpy.context.scene.I3D_UIexportSettings, oldAttrName)
+            if old_val is not None:
+                setattr(bpy.context.scene.I3D_UIexportSettings, newAttrName, old_val)
+            if oldAttrName in bpy.context.scene.I3D_UIexportSettings:
+                del bpy.context.scene.I3D_UIexportSettings[oldAttrName]
 
     legacyNodeAttributeMap = {"I" + attrName[1::] : attrName for attrName, _ in dcc.SETTINGS_ATTRIBUTES.items() if attrName[0] == "i"}
     for m_node in bpy.data.objects:
@@ -4720,12 +5281,20 @@ def load_handler(dummy):
     # Handle legacy locked groups
     legacyLockedGroupAttributeName = 'i3D_lockedGroup'
     if legacyLockedGroupAttributeName in bpy.context.scene.I3D_UIexportSettings:
-        if bpy.context.scene.I3D_UIexportSettings[legacyLockedGroupAttributeName] == True:
+        if bpy.context.scene.I3D_UIexportSettings.get(legacyLockedGroupAttributeName, False) == True:
             for m_node in bpy.context.scene.objects:
                 if (None is m_node.parent):
                     m_node['i3D_lockedGroup'] = True
         bpy.context.scene.I3D_UIexportSettings[legacyLockedGroupAttributeName] = 0
+            # Keep legacy as IDProperty only; the new system uses RNA properties for locking state.
     # End handle legacy locked groups
+
+
+    # Auto-initialize shader UI for this session/file load
+    try:
+        schedule_i3d_shader_autoinit(force=True)
+    except Exception as e:
+        print(f"[I3D] Shader auto-init scheduling failed: {e}")
 
 
 @persistent
@@ -4764,6 +5333,26 @@ def drawObjectContextMenu(self, context):
 #-------------------------------------------------------------------------------
 #   Register
 #-------------------------------------------------------------------------------
+
+class I3D_OT_OpenEnglishTutorial(bpy.types.Operator):
+    bl_idname = "i3d.open_english_tutorial"
+    bl_label = "English"
+    bl_description = "Opens a YouTube Tutorial in English in your web browser."
+
+    def execute(self, context):
+        bpy.ops.wm.url_open(url="https://youtu.be/NzDNftZ0_gM")
+        return {'FINISHED'}
+
+
+class I3D_OT_OpenFrenchTutorial(bpy.types.Operator):
+    bl_idname = "i3d.open_french_tutorial"
+    bl_label = "French"
+    bl_description = "Opens a YouTube Tutorial in French in your web browser."
+
+    def execute(self, context):
+        bpy.ops.wm.url_open(url="https://www.youtube.com/watch?v=RHeDCo2Ud8Q")
+        return {'FINISHED'}
+
 classes = (
         I3D_UIMaterialTemplateProperties,
         I3D_PT_PanelExport,
@@ -4771,6 +5360,8 @@ classes = (
         I3D_OT_PanelExport_ButtonAttr,
         I3D_OT_PanelExport_ButtonExport,
         I3D_OT_PanelTools_ButtonChangelog,
+        I3D_OT_OpenEnglishTutorial,
+        I3D_OT_OpenFrenchTutorial,
         I3D_OT_ShowDeltaBakeLocation,
         I3D_OT_PanelRemoveXMLPath_ButtonRemove,
         I3D_OT_PanelAddShader_ButtonConvertFs22Fs25,
@@ -4827,6 +5418,8 @@ def register():
     # --------------------------Handler-------------------------------------------
     bpy.app.handlers.load_post.append(load_handler)
     bpy.app.handlers.load_post.append(modal_handler)
+    # Ensure shader tools are ready even when enabling the addon mid-session
+    schedule_i3d_shader_autoinit(force=True)
     if i3d_selected_material_sync_handler not in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.append(i3d_selected_material_sync_handler)
     # --------------------------Context Menu-------------------------------------------
@@ -4834,6 +5427,8 @@ def register():
     bpy.types.VIEW3D_MT_object_context_menu.append(drawObjectContextMenu)
 
 def unregister():
+    global g_autoShaderInitEnabled
+    g_autoShaderInitEnabled = False
     for dynamicClass in g_dynamicGUIClsDict.values():
         bpy.utils.unregister_class(dynamicClass)
     # --------------------------Tools-------------------------------------------

@@ -36,7 +36,7 @@ class I3D_PT_motionPathObject( bpy.types.Panel ):
     bl_label        = "GIANTS Motion Path Tool (Animations)"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "GIANTS I3D Exporter"
+    bl_category = "GIANTS I3D Exporter REWORKED"
 
     animatedTransforms = []
     curveLength = {}
@@ -138,6 +138,7 @@ class I3D_OT_motionPathObjectPopUp(bpy.types.Operator):
     """Open the Pop up window"""
 
     bl_label = "Object Data from Animations"
+    bl_description = "Object Data from Animations."
     bl_idname = "i3d.motionpathobjectpopup"
     bl_options = {'UNDO'}
     state : bpy.props.IntProperty(name = "State", default = 0)
@@ -161,6 +162,7 @@ class I3D_OT_motionPathObjectPopUp(bpy.types.Operator):
 class TOOLS_OT_motionPathObjectPopUpActionButton(bpy.types.Operator, bpy.types.PropertyGroup):
 
     bl_label = "Action Button"
+    bl_description = "Action Button."
     bl_idname = "tools.motionpathobjectpopupactionbutton"
 
     state : bpy.props.IntProperty(name = "State", default=0)

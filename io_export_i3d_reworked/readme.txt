@@ -1,5 +1,55 @@
 CHANGE LOGS
 
+
+V 10.0.17.61 (14.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
+- Added a new Vehicle Light Setup Tool (Static Light workflow):
+  - In-Blender light creation, generates UV maps, paints vertex colors, generates a LightIntensity map (emission), and can create multifunction Light Types (must set your materials and assign the proper faces).
+  - In-Blender validation to catch common setup issues before export / Giants Editor.
+  - Supports testing & validation of manually built lights (requires UV maps + shader/staticLight minimum to be setup for manual built light detection to work).
+
+(looking for YouTube Tutorial Maker I'll do one eventually if no volunteers but it needs to cover all types and detection of manual built lights.)
+
+- Fixed the "Object Data from Curve" tool to work with FS25 things and in newer Blender Versions.
+- Track Array Tools:
+  - Import Basic Oval Track Setup System (template import).
+  - Generate Custom Track Setup System From Guides:
+    - Generates the template-style curve and armature: "2. EDIT me" + "3. EXPORT me".
+    - Builds the 100-bone chain (Bone, Bone.002 ... Bone.100) and applies the matching Spline IK constraint.
+    - Curve generation is centered on the world origin axis without forcing the Z (height) axis.
+  - Credits: "Created by DtapGaming and RMC GamerDesigns".
+- Shader Setup / Simulator:
+  - Material Type simulation behavior improved so visuals ignore UV map scaling correctly and act like Giants treats them.
+- Export reliability:
+  - Sanitizes '&' in object/material names during export to prevent broken .i3d files.
+- Tools stability (Blender 5):
+  - Fixed Motion Path + Vertex Color + Spline tool panels no longer create their own addon panels
+- Updater quality-of-life:
+  - "Skip this version" is now respected after using "Refresh Addon After Update".
+  - "Undo Skip Version" restored in the bottom mini menu.
+
+V 10.0.17.13 (08.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
+- My Color Library JSON sharing improvements for Decals:
+  - Export now supports an optional ZIP bundle: JSON + copies of all decal images used by your saved library.
+  - Import supports ZIP bundles and will copy decal images into your persistent add-on storage so decals keep working across sessions.
+  - JSON import will also resolve relative decal paths (e.g. decals/yourImage.png) when importing from a shared folder.
+
+V 10.0.17.12 (07.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
+- Updated Color Library How-To PDFs (Material Mode + XML Mode) with new UI screenshots, corrected callouts, and updated explanations. The How-To buttons open these PDFs from the /docs folder.
+- My Color Library improvements:
+  - Added "Sort by Selected Material" button (material icon) next to the Search / Sort A-Z / Reverse controls.
+  - Fixed Name Column width slider behavior for My Color Library rows.
+  - JSON Export/Import fixed (Blender 5): operators now use the correct file-browser helpers, so picking .json paths works reliably again.
+- Decal workflow improvements (My Color Library):
+  - Decal image path is now remembered per saved entry (persists across new Blender sessions and is included in JSON Export/Import).
+  - Added a "Change Image" icon button (appears after the decal is set) to re-pick the decal image and re-save the path.
+  - Decal entries show a small thumbnail preview in the swatch column; click it to open a larger preview popup.
+  - Fixed "Clear all temporary material shader Nodes" so it removes preview nodes but does NOT unhook the decal image from Principled Base Color/Alpha.
+- L10N / XML exports:
+  - L10N export now generates a single appended bundle file containing both EN + DE blocks (l10nBundle).
+  - Improved German translation fallback / no-op detection (reduces cases where English comes back unchanged with minor punctuation edits).
+- Stability/UI fixes:
+  - Fixed Blender 5 enable crash caused by a stray UI draw call at import time (NameError: box not defined).
+
 V 10.0.17.11 (10.12.2025) Build: ALPHA TESTING (opt in in user Preferences)
 - Added "Refresh Addon After Update" button in the main panel header to disable + re-enable the add-on (timed), purge sys.modules entries for io_export_i3d_reworked, and force a full UI redraw so drag-and-drop updates can be applied without restarting Blender.
 - Added Modders Edge Tools & Cleanup utilities into the add-on (credit: RMC|GamerDesigns).
@@ -20,40 +70,45 @@ V 10.0.17.11 (10.12.2025) Build: ALPHA TESTING (opt in in user Preferences)
   - Import/Export sharing applies ONLY to My Color Library (Giants/Popular are not exportable)
   - User Preferences: Color Library list Name Column slider
 
-V 10.0.17.10 (10.12.2025) Build: BETA TESTING (opt in in user Preferences)
-- Added a Color Library Tool (credit for the baseline and Idea goes to RMC|GamerDesigns) but has been improved upon and now has 3 tabs of Libraries (User created/Giants Brands/Popular Color Library {colors are based off of hex colors from public documents so its possible some popular ones could be wrong but more likely they just dont look right in blenders lighting} )
+V 10.0.17.10 (10.12.2025) Build: ALPHA TESTING (opt in in user Preferences)
+Added a Color Library Tool (credit for the baseline and Idea goes to RMC|GamerDesigns) but has been improved upon and now has 3 tabs of Libraries (User created/Giants Brands/Popular Color Library {colors are based off of hex colors from public documents so its possible some popular ones could be wrong but more likely they just dont look right in blenders lighting} )
 
 V 10.0.17.9 (10.12.2025) Build: BETA TESTING (opt in in user Preferences)
-- Added 4th Digit Build Number (Testing) build numbers
-- Fixed Blender 5 panel draw issues (no more restart required after install/update).
-- Removed all “Quit Blender” / restart-required logic from the add-on.
-- Fixed shader Load behavior and material dropdown syncing when selecting meshes (including old .blend files).
-- Added automatic conversion of legacy absolute customShader paths to portable $data/shaders (now allows Handing blend files off to co-modders without having to deal with fixing materials)
-- Improved update/rollback behavior: update checks now default ON and user update settings persist across reinstall/rollback.
-- Added a one-click button to enable Blender Allow Online Access when update checks are enabled but Blenders online internet access isnt.
+Added 4th Digit Build Number (Testing) build numbers
+Fixed Blender 5 panel draw issues (no more restart required after install/update).
+Removed all “Quit Blender” / restart-required logic from the add-on.
+Fixed shader Load behavior and material dropdown syncing when selecting meshes (including old .blend files).
+Added automatic conversion of legacy absolute customShader paths to portable $data/shaders (now allows Handing blend files off to co-modders without having to deal with fixing materials)
+Improved update/rollback behavior: update checks now default ON and user update settings persist across reinstall/rollback.
+Added a one-click button to enable Blender Allow Online Access when update checks are enabled but Blenders online internet access isnt.
 
 V 10.0.16 (10.12.2025) Build: STABLE RELEASE
-- Fixed Issue where error could occur if user selected the actual full collection in scene graph
-- Fixed drawing issue for the material Template tool (assign vehicle shader materials preassigned from Giants)
+Fixed Issue where error could occur if user selected the actual full collection in scene graph
+Fixed drawing issue for the material Template tool (assign vehicle shader materials preassigned from Giants)
 
 V 10.0.15 (10.12.2025) Build: STABLE RELEASE
-- Renamed Folder and Installer from io_export_i3d_10_0_11 to io_export_i3d_reworked
-- Added prompt that warns user that the official "Giants" exporter is active and both can not be active concurrently - ability to disable Giants Version and enable this one with single button
-- Added a warning prompt on install, that Blender needs to start a new session for addon to work - quit, save and quit, and cancel button for responses
-- Added a warning prompt on disable Giants Official exporter, that Blender needs to start a new session for addon to work - quit, save and quit, and cancel button for responses
-- Added a check on every start of a new blender session to ensure user did not re-enable Giants Official exporter while this exporter is active - Only one may be active at a time.
-- Full rebuild to the UV Mapping tool (previously named Vehicle Array Tool) Now Rebuilt and Optimized for Farming Simulator 25 No longer has FS22 Material properties
-- Added a "Snow Heap Mode" - REQUIRED to be enabled if doing Snow Heap Exporting (Roof Snow that Piles Up)
-- Built the Delta Vertex Color Tool Into this build - Original by Fuxna & Redphoenix
-- Major Overhaul to Delta Vertex Color Tool to allow it to work on Newer and Older Blenders
-- Added prompt that warns user if the "Delta Vertex Color Tool" is active and both can not be active concurrently - ability to disable Fuxna & Redphoenix version and enable this one with single button
-- Added a "Delta Vertex Info tab" in the Tools tab of the Giants Panel with Links to Youtube Videos and credits to Fuxna & Redphoenix and a button to show new users where to find the Data Tab
+Renamed Folder and Installer from io_export_i3d_10_0_11 to io_export_i3d_reworked
+Added prompt that warns user that the official "Giants" exporter is active and both can not be active concurrently - ability to disable Giants Version and enable this one with single button
+Added a warning prompt on install, that Blender needs to start a new session for addon to work - quit, save and quit, and cancel button for responses
+Added a warning prompt on disable Giants Official exporter, that Blender needs to start a new session for addon to work - quit, save and quit, and cancel button for responses
+Added a check on every start of a new blender session to ensure user did not re-enable Giants Official exporter while this exporter is active - Only one may be active at a time.
+Full rebuild to the UV Mapping tool (previously named Vehicle Array Tool) Now Rebuilt and Optimized for Farming Simulator 25 No longer has FS22 Material properties
+Added a "Snow Heap Mode" - REQUIRED to be enabled if doing Snow Heap Exporting (Roof Snow that Piles Up)
+Built the Delta Vertex Color Tool Into this build - Original by Fuxna & Redphoenix
+major Overhaul to Delta Vertex Color Tool to allow it to work on Newer and Older Blenders
+Added prompt that warns user if the "Delta Vertex Color Tool" is active and both can not be active concurrently - ability to disable Fuxna & Redphoenix version and enable this one with single button
+Added a "Delta Vertex Info tab" in the Tools tab of the Giants Panel with Links to Youtube Videos and credits to Fuxna & Redphoenix and a button to show new users where to find the Data Tab
+Panel renamed to Giants I3D Exporter REWORKED
 
 V 10.0.14 (8.12.2025) Build: ALPHA0 NOT STABLE
-- Updated reworked version for Farming Simulator 25 By DTAPGAMING
-- Moved Game Installation Path browser into Preference addon menu - (this allows for a persistent game install location so you no longer have to select your install location every time you launch blender)
-- Reworked GUI to better fit new persistent game install location features - If you set the wrong folder just go into Blender > Edit > Preferences > Add-ons > Giants I3D Exporter Tools Reworked> at the bottom is your install Location!
-- Reworked Logic to allow all built-in tools to work with new persistent game install location - Just click the magnifying glass for shaders in material tab once you set the game install path it will work from then on out!
+Updated reworked version for Farming Simulator 25 By DTAPGAMING
+
+Moved Game Installation Path browser into Preference addon menu - (this allows for a persistent game install location so you no longer have to select your install location every time you launch blender)
+
+Reworked GUI to better fit new persistent game install location features - If you set the wrong folder just go into Blender > Edit > Preferences > Add-ons > Giants I3D Exporter Tools Reworked> at the bottom is your install Location!
+
+Reworked Logic to allow all built-in tools to work with new persistent game install location - Just click the magnifying glass for shaders in material tab once you set the game install path it will work from then on out!
+
 You will need the game install location set to use the Material Templates as well
-- Added Emission Nullifier Option (no longer need to drag the slider of emissions to black or deal with annoyances in Giants Editor if you forgot)
-- Removed the "Game relative" and "Relative" path options from export Tab and built real logic into back end, no longer needs a users input to properly route file paths.
+Added Emission Nullifier Option (no longer need to drag the slider of emissions to black or deal with annoyances in Giants Editor if you forgot)
+Removed the "Game relative" and "Relative" path options from export Tab and built real logic into back end, no longer needs a users input to properly route file paths.

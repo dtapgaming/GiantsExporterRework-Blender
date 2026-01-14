@@ -1,20 +1,34 @@
-THIRD PARTY NOTICES
-===================
+THIRD-PARTY NOTICES
 
-This add-on bundle includes portions adapted from "Modder’s Edge" by GamerDesigns.
+This add-on ("GIANTS I3D Exporter REWORKED") is distributed under the GNU General Public License, version 2 or later.
+See: LICENSE
 
-- Project: Modder’s Edge
-- Author: GamerDesigns
-- License: MIT (as stated in the provided Modder’s Edge README.md)
+-----------------------------------------------------------------------
 
-The following logic was adapted:
+Modder’s Edge (by GamerDesigns) - MIT License
+
+Portions of this add-on include logic adapted from "Modder’s Edge" by GamerDesigns (MIT).
+These portions have been modified and integrated into this add-on.
+
+Functionality originally based on or adapted from Modder’s Edge includes (non-exhaustive):
+
 - Material cleanup operators
+- Replace Material A -> B operator
+- Cursor & Origin shortcut operators
+- Add Objects shortcut operators
+- Apply Transforms shortcut operators
+- Mesh cleanup operators (Edit Mode shortcuts)
 - Vertex cleanup operators
 - Better tris/quads operator
-- UV unwrap/smart project operators
+- UV unwrap / smart project operators
+- Early "Color Library" scaffolding (the current Color Library system has been heavily expanded and reworked)
 
-MIT License Text
-----------------
+MIT License text (Modder’s Edge):
+
+MIT License
+
+Copyright (c) GamerDesigns
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
