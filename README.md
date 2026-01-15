@@ -93,6 +93,94 @@ Bug reports can be on this GitHub OR in your user prefferences you can select
 ****CHANGE LOGS**** 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 
+V 10.0.17.63 (14.01.2026) Build: BETA TESTING (opt in in user Preferences)
+------------------
+- Unsaved .blend safety for “Export Object Data Texture” If the blend isn’t saved, it now prompts the user to choose where to save curveArray.dds (instead of writing to a dangerous/odd default).
+- Vehicle Light Tool validation + selection
+  - Validation now updates mesh/UV data so Object Mode doesn’t miss UV-out-of-tile errors.
+- Shader Setup: crash when no material assigned
+- Shader Setup material selection sync
+- Implemented proper bidirectional sync:
+  - Picking a material in Blender’s Material Properties updates the add-on.
+  - Picking a material in the add-on updates Blender’s active material slot.
+- Object Data Texture export reliability (DDS overwrite/selection logic)
+  - Export now targets the correct root based on current selection/parent chain.
+  - De-dupes by output filepath so a stale object can’t overwrite a good DDS with a width=0 DDS.
+  - Adds guards to refuse writing DDS if computed width/height are invalid + adds debug print of which object actually exported.
+- Custom Track Setup axis lock behavior
+  - Stops the generated setup from needing manual Y-axis dragging to re-align with rollers.
+- Track Array Tools tutorial link updated to GamerDesigns New Tutorial using this tool in its Alpha Build State.
+
+V 10.0.17.61 (14.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
+------------------
+- Added a new Vehicle Light Setup Tool (Static Light workflow):
+  - In-Blender light creation, generates UV maps, paints vertex colors, generates a LightIntensity map (emission), and can create multifunction Light Types (must set your materials and assign the proper faces).
+  - In-Blender validation to catch common setup issues before export / Giants Editor.
+  - Supports testing & validation of manually built lights (requires UV maps + shader/staticLight minimum to be setup for manual built light detection to work).
+- Track Array Tools:
+  - Import Basic Oval Track Setup System (template import).
+  - Generate Custom Track Setup System From Guides:
+    - Generates the template-style curve and armature: "2. EDIT me" + "3. EXPORT me".
+    - Builds the 100-bone chain (Bone, Bone.002 ... Bone.100) and applies the matching Spline IK constraint.
+    - Curve generation is centered on the world origin axis without forcing the Z (height) axis.
+  - Credits: "Created by DtapGaming and RMC Gamer Designs".
+- Shader Setup / Simulator:
+  - Material Type simulation behavior improved so visuals ignore UV map scaling correctly and act like Giants treats them.
+- Export reliability:
+  - Sanitizes '&' in object/material names during export to prevent broken .i3d files.
+- Tools stability (Blender 5):
+  - Fixed Motion Path and Vertex Color panels failing to draw due to missing Scene properties / operators.
+- Updater quality-of-life:
+  - "Skip this version" is now respected after using "Refresh Addon After Update".
+  - "Undo Skip Version" restored in the bottom mini menu.
+
+V 10.0.17.13 (08.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
+------------------
+- My Color Library JSON sharing improvements for Decals:
+  - Export now supports an optional ZIP bundle: JSON + copies of all decal images used by your saved library.
+  - Import supports ZIP bundles and will copy decal images into your persistent add-on storage so decals keep working across sessions.
+  - JSON import will also resolve relative decal paths (e.g. decals/yourImage.png) when importing from a shared folder.
+
+V 10.0.17.12 (07.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
+------------------
+- Updated Color Library How-To PDFs (Material Mode + XML Mode) with new UI screenshots, corrected callouts, and updated explanations. The How-To buttons open these PDFs from the /docs folder.
+- My Color Library improvements:
+  - Added "Sort by Selected Material" button (material icon) next to the Search / Sort A-Z / Reverse controls.
+  - Fixed Name Column width slider behavior for My Color Library rows.
+  - JSON Export/Import fixed (Blender 5): operators now use the correct file-browser helpers, so picking .json paths works reliably again.
+- Decal workflow improvements (My Color Library):
+  - Decal image path is now remembered per saved entry (persists across new Blender sessions and is included in JSON Export/Import).
+  - Added a "Change Image" icon button (appears after the decal is set) to re-pick the decal image and re-save the path.
+  - Decal entries show a small thumbnail preview in the swatch column; click it to open a larger preview popup.
+  - Fixed "Clear all temporary material shader Nodes" so it removes preview nodes but does NOT unhook the decal image from Principled Base Color/Alpha.
+- L10N / XML exports:
+  - L10N export now generates a single appended bundle file containing both EN + DE blocks (l10nBundle).
+  - Improved German translation fallback / no-op detection (reduces cases where English comes back unchanged with minor punctuation edits).
+- Stability/UI fixes:
+  - Fixed Blender 5 enable crash caused by a stray UI draw call at import time (NameError: box not defined).
+
+V 10.0.17.11 (10.12.2025) Build: ALPHA TESTING (opt in in user Preferences)
+------------------
+- Added "Refresh Addon After Update" button in the main panel header to disable + re-enable the add-on (timed), purge sys.modules entries for io_export_i3d_reworked, and force a full UI redraw so drag-and-drop updates can be applied without restarting Blender.
+- Added Modders Edge Tools & Cleanup utilities into the add-on (credit: RMC|GamerDesigns).
+- Added "Material Tools" collapsible in the Material tab containing:
+  - Replace Material A -> B
+  - Material Cleanup
+  (credit: RMC|GamerDesigns)
+- Reorganized Material tab UI:
+  - Added main "Shader Setup" collapsible for shader configuration UI
+  - Refraction Map collapsible is now nested inside "Shader Setup"
+  - Color Library sits below Refraction Map and above "Material Tools"
+- Color Library improvements (credit baseline/idea: RMC|GamerDesigns; expanded/customized for REWORKED):
+  - 3 tabs: My Color Library / Giants Library / Popular Color Library
+  - Giants Library parses $data/shared/brandMaterialTemplates.xml (brand dropdown + color list)
+  - Popular Color Library parses an XML shipped with the add-on (popular tractor/vehicle/platform palettes)
+  - Selected panel shows GIANTS (sRGB), RGB (0-255), HEX, and copy buttons (Copy GIANTS (sRGB), Copy RGB, Copy HEX, Copy colorScale)
+  - Added "Set Emission (Black)" button in Selected section
+  - Import/Export sharing applies ONLY to My Color Library (Giants/Popular are not exportable)
+  - User Preferences: Color Library list Name Column slider
+
+
 V 10.0.17.10 (10.12.2025) Build: ALPHA TESTING (opt in in user Preferences)
 ------------------
 - Added a Color Library Tool (credit for the baseline and Idea goes to RMC|GamerDesigns) but has been improved upon and now has 3 tabs of Libraries (User created/Giants Brands/Popular Color Library {colors are based off of hex colors from public documents so its possible some popular ones could be wrong but more likely they just dont look right in blenders lighting} )
