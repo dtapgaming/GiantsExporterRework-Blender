@@ -161,7 +161,7 @@ def UIGetAttrBool(key):
     return eval(m_str)
 
 def UISetAttrBool(key,val):
-    bpy.context.scene.I3D_UIexportSettings[key] = val
+    setattr(bpy.context.scene.I3D_UIexportSettings, key, val)
     #m_str = "bpy.context.scene.I3D_UIexportSettings.{0}=bool({1})".format(key,val)
     #exec(m_str)
 
@@ -310,7 +310,23 @@ def getNodeInstances(nodeStr):
 
 def getFormattedNodeName(nodeName):
     """ Formats a given node name for export (removal of sorting prefix) """
-    return nodeName.split(":")[-1]
+    return sanitizeNameForI3D(nodeName.split(":")[-1])
+
+
+def sanitizeNameForI3D(name: str) -> str:
+    """Sanitize names for i3d export. GIANTS i3d is XML; raw '&' breaks parsing."""
+    try:
+        if not isinstance(name, str):
+            return name
+        if "&" in name:
+            name = name.replace("&", " AND ")
+            while "  " in name:
+                name = name.replace("  ", " ")
+            name = name.strip()
+        return name
+    except Exception:
+        return name
+
 
 def getNodeName(nodeStr):
     """ Get bpy.data.object[].name """
@@ -330,8 +346,8 @@ def getBoneData(boneStr, armStr, nodeData = {}):
     """ Gets bpy.data of the requested bone and writes it to nodeData """
 
     boneObj = bpy.data.objects[armStr].data.bones[boneStr]
-    nodeData["fullPathName"] = armStr + "_" + boneObj.name
-    nodeData["name"] = boneObj.name
+    nodeData["fullPathName"] = sanitizeNameForI3D(armStr + "_" + boneObj.name)
+    nodeData["name"] = sanitizeNameForI3D(boneObj.name)
     return nodeData
 
 def transformPath(objStr, inverted = False):
@@ -643,7 +659,7 @@ def getMergeMemberShapeData(shapeNameStr, specialValue, rootStr, applyTrans, app
             if None == m_mat:
                 m_mat = "default"
             else:
-                m_mat = m_mat.name
+                m_mat = sanitizeNameForI3D(m_mat.name)
             m_materials[m_mat].append(m_triangle.index)
     else:
         for m_triangle in m_meshGen.loop_triangles:
@@ -869,7 +885,7 @@ def getShapeData(m_shapeStr,m_nodeData, m_sceneNodeData):
             if None == m_mat:
                 m_mat = "default"
             else:
-                m_mat = m_mat.name
+                m_mat = sanitizeNameForI3D(m_mat.name)
             m_materials[m_mat].append(m_triangle.index)
     else:
         for m_triangle in m_meshGen.loop_triangles:
@@ -1186,7 +1202,7 @@ def getShapeMaterials(shapeStr):
             if mesh.materials:
                 m_mat = mesh.materials[matIndex]
                 if m_mat:
-                    m_materials.append(m_mat.name)
+                    m_materials.append(sanitizeNameForI3D(m_mat.name))
                     if "materialSlotName" in m_mat:
                         m_materialSlotNames.append(m_mat["materialSlotName"])
                     else:
@@ -1206,6 +1222,32 @@ def getShapeMaterials(shapeStr):
             m_materialSlotNames.append(None)
     return m_materials, m_materialSlotNames
 
+
+def _i3d_is_preview_only_node(node) -> bool:
+    """Preview-only nodes injected by io_export_i3d_reworked for MaterialTemplates previews.
+    These nodes must not be exported as real material texture files.
+    """
+    try:
+        if node is None:
+            return False
+        try:
+            if bool(node.get("i3d_preview_only", False)):
+                return True
+        except Exception:
+            pass
+        try:
+            if bool(node["i3d_preview_only"]):
+                return True
+        except Exception:
+            pass
+        lab = getattr(node, "label", "") or ""
+        if isinstance(lab, str) and lab.startswith("I3D_PREVIEW_ONLY:"):
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def getMaterialFiles(materialStr):
     """ Returns a dictionary with a filepath assigned to a material """
 
@@ -1214,11 +1256,13 @@ def getMaterialFiles(materialStr):
     if materialStr in bpy.data.materials:
         mat = bpy.data.materials[materialStr]
         if(mat.use_nodes):
-            textures = [x for x in mat.node_tree.nodes if x.type=='TEX_IMAGE']
+            textures = [x for x in mat.node_tree.nodes if x.type=='TEX_IMAGE' and (not _i3d_is_preview_only_node(x))]
             for textureNode in textures:
                 image = textureNode.image
                 if(image):
-                    m_files[os.path.normpath(bpy.path.abspath(image.filepath))] = getTextureTypeInSlot(mat, textureNode)
+                    tType = getTextureTypeInSlot(mat, textureNode)
+                    if(tType):
+                        m_files[os.path.normpath(bpy.path.abspath(image.filepath))] = tType
         shaderFileData = None
         if "customShader" in mat:
             #take shader location to put together an absolute path
@@ -1259,15 +1303,24 @@ def getMaterialFiles(materialStr):
                     elif selectedParentSubTemplateId is not None:
                         selectedSubTemplateId = selectedParentSubTemplateId
 
-                    if selectedSubTemplateId is not None:
+                    # Handle template names with description (e.g. "NAME (Main color)")
+                    try:
+                        selectedSubTemplateId = selectedSubTemplateId.split()[0]
+                    except:
+                        pass
+
+                    if selectedSubTemplateId is not None and selectedSubTemplateId not in subTemplate["templates"]:
+                        selectedSubTemplateId = subTemplate["defaultParentTemplate"]
+
+                    if selectedSubTemplateId is not None and selectedSubTemplateId in subTemplate["templates"]:
                         selectedSubTemplate = subTemplate["templates"][selectedSubTemplateId]
                         for textureName, _ in parameterTemplate["textures"].items():
                             if textureName not in handledTextures and textureName in selectedSubTemplate:
                                 m_files[selectedSubTemplate[textureName]] = "customTexture_{}".format(textureName)
                                 handledTextures.append(textureName)
 
-                        if "parentTemplate" in selectedSubTemplateId:
-                            selectedParentSubTemplateId = selectedSubTemplateId["parentTemplate"]
+                        if "parentTemplate" in selectedSubTemplate:
+                            selectedParentSubTemplateId = selectedSubTemplate["parentTemplate"]
                         else:
                             selectedParentSubTemplateId = subTemplate["defaultParentTemplate"]
 
@@ -1276,43 +1329,85 @@ def getMaterialFiles(materialStr):
     return m_files
 
 def getTextureTypeInSlot( mat, textureNode ):
-    """ Checks on which input slot the texture is mapped and returns type accordingly """
+    """Checks which material slot a texture contributes to.
 
-    #maybe solid recursive search necessary..
-    if(mat.use_nodes):
-        #check for values in immediate connected node -> add search to check further down in the hierarchy
-        surfaceNode = mat.node_tree.nodes['Material Output'].inputs['Surface'].links[0].from_node
+    DTAP addition:
+    - Works even when the image is routed through intermediate math/mix nodes
+      (recursive upstream graph walk).
+    - Preview-only injected nodes (i3d_preview_only / I3D_PREVIEW_ONLY:*) are ignored.
+    """
+    if not mat or not getattr(mat, "use_nodes", False):
+        return "Texture"
+    if _i3d_is_preview_only_node(textureNode):
+        return ""
 
-        specularName = getSpecularVariableName()
-        emissionName = getEmissionVariableName()
+    try:
+        out_node = mat.node_tree.nodes.get('Material Output')
+        if not out_node:
+            return "Texture"
+        surf_in = out_node.inputs.get('Surface')
+        if not surf_in or not surf_in.is_linked:
+            return "Texture"
+        surfaceNode = surf_in.links[0].from_node
+    except Exception:
+        return "Texture"
 
-        if specularName in surfaceNode.inputs and surfaceNode.inputs[specularName].is_linked:
-            for links in surfaceNode.inputs[specularName].links:
-                if(links.from_node == textureNode):
-                    return "Glossmap"
-        if 'Roughness' in surfaceNode.inputs and surfaceNode.inputs['Roughness'].is_linked:
-            for links in surfaceNode.inputs['Roughness'].links:
-                if(links.from_node == textureNode):
-                    return "Glossmap"
-        if 'Base Color' in surfaceNode.inputs and surfaceNode.inputs['Base Color'].is_linked:
-            for links in surfaceNode.inputs['Base Color'].links:
-                if(links.from_node == textureNode):
-                    return "Texture"
-        if 'Normal' in surfaceNode.inputs and surfaceNode.inputs['Normal'].is_linked:
-            for links in surfaceNode.inputs['Normal'].links:
-                if(links.from_node == textureNode):
-                    return "Normalmap"
-                elif(links.from_node.type == 'NORMAL_MAP'):
-                    normalMapNode = links.from_node
-                    if 'Color' in normalMapNode.inputs and normalMapNode.inputs['Color'].is_linked:
-                        for linksNormalMap in normalMapNode.inputs['Color'].links:
-                            if(linksNormalMap.from_node == textureNode):
-                                return "Normalmap"
-        if emissionName in surfaceNode.inputs and surfaceNode.inputs[emissionName].is_linked:
-            for links in surfaceNode.inputs[emissionName].links:
-                if(links.from_node == textureNode):
-                    return "Emissivemap"
+    specularName = getSpecularVariableName()
+    emissionName = getEmissionVariableName()
+
+    def _input_reaches_texture(start_socket) -> bool:
+        try:
+            stack = [start_socket]
+            visited = set()
+            while stack:
+                sock = stack.pop()
+                if not sock or (not getattr(sock, "is_linked", False)):
+                    continue
+                for lnk in list(sock.links):
+                    fn = getattr(lnk, "from_node", None)
+                    if fn is None:
+                        continue
+                    if fn == textureNode:
+                        return True
+                    if fn in visited:
+                        continue
+                    visited.add(fn)
+                    for inp in getattr(fn, "inputs", []):
+                        stack.append(inp)
+            return False
+        except Exception:
+            return False
+
+    # Priority order matches prior expectations
+    try:
+        if emissionName in surfaceNode.inputs and _input_reaches_texture(surfaceNode.inputs[emissionName]):
+            return "Emissivemap"
+    except Exception:
+        pass
+    try:
+        if 'Normal' in surfaceNode.inputs and _input_reaches_texture(surfaceNode.inputs['Normal']):
+            return "Normalmap"
+    except Exception:
+        pass
+    try:
+        if specularName in surfaceNode.inputs and _input_reaches_texture(surfaceNode.inputs[specularName]):
+            return "Glossmap"
+    except Exception:
+        pass
+    try:
+        if 'Roughness' in surfaceNode.inputs and _input_reaches_texture(surfaceNode.inputs['Roughness']):
+            return "Glossmap"
+    except Exception:
+        pass
+    try:
+        if 'Base Color' in surfaceNode.inputs and _input_reaches_texture(surfaceNode.inputs['Base Color']):
+            return "Texture"
+    except Exception:
+        pass
+
+    # Default (back-compat)
     return "Texture"
+
 
 def getNormalMapStrength(mat):
     """ gets the strength of the normal map from the normal map node """
@@ -1878,15 +1973,24 @@ def getMaterialData(m_nodeStr, m_data):
                     elif selectedParentSubTemplateId is not None:
                         selectedSubTemplateId = selectedParentSubTemplateId
 
-                    if selectedSubTemplateId is not None:
+                    # Handle template names with description (e.g. "NAME (Main color)")
+                    try:
+                        selectedSubTemplateId = selectedSubTemplateId.split()[0]
+                    except:
+                        pass
+
+                    if selectedSubTemplateId is not None and selectedSubTemplateId not in subTemplate["templates"]:
+                        selectedSubTemplateId = subTemplate["defaultParentTemplate"]
+
+                    if selectedSubTemplateId is not None and selectedSubTemplateId in subTemplate["templates"]:
                         selectedSubTemplate = subTemplate["templates"][selectedSubTemplateId]
                         for paramName, _ in parameterTemplate["parameters"].items():
                             if paramName not in handledParams and paramName in selectedSubTemplate:
                                 m_customParameters[paramName] = selectedSubTemplate[paramName]
                                 handledParams.append(paramName)
 
-                        if "parentTemplate" in selectedSubTemplateId:
-                            selectedParentSubTemplateId = selectedSubTemplateId["parentTemplate"]
+                        if "parentTemplate" in selectedSubTemplate:
+                            selectedParentSubTemplateId = selectedSubTemplate["parentTemplate"]
                         else:
                             selectedParentSubTemplateId = subTemplate["defaultParentTemplate"]
 

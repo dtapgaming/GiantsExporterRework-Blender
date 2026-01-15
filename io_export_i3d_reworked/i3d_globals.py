@@ -63,6 +63,133 @@ def I3DLogPerformance(text):
 #sys.path.append("c:/users/nicolas wrobel/appdata/roaming/python/python310/site-packages")
 
 import bpy
+import os
+import json
+
+# --------------------------------------------------------------
+# Persistent preferences (survive uninstall/reinstall rollbacks)
+# --------------------------------------------------------------
+_I3D_PREFS_CACHE_FILE = "io_export_i3d_reworked_prefs.json"
+
+def _i3d_prefs_cache_path():
+    try:
+        cfg = bpy.utils.user_resource('CONFIG')
+    except Exception:
+        cfg = ""
+    if not cfg:
+        return ""
+    return os.path.join(cfg, _I3D_PREFS_CACHE_FILE)
+
+def _i3d_find_addon_prefs():
+    try:
+        addon_entry = bpy.context.preferences.addons.get("io_export_i3d_reworked")
+        if addon_entry is None:
+            for addon_key, addon_val in bpy.context.preferences.addons.items():
+                if addon_key.endswith(".io_export_i3d_reworked"):
+                    addon_entry = addon_val
+                    break
+        if addon_entry and getattr(addon_entry, "preferences", None):
+            return addon_entry.preferences
+    except Exception:
+        pass
+    return None
+
+
+def _i3d_prefs_save_from_prefs(prefs):
+    path = _i3d_prefs_cache_path()
+    if not path:
+        return
+    try:
+        data = {
+            "game_install_path": getattr(prefs, "game_install_path", ""),
+            "enable_update_checks": bool(getattr(prefs, "enable_update_checks", True)),
+            "update_channel": getattr(prefs, "update_channel", "STABLE"),
+            "update_installed_channel": getattr(prefs, "update_installed_channel", "STABLE"),
+            "update_installed_by_updater": bool(getattr(prefs, "update_installed_by_updater", False)),
+        }
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
+def _i3d_prefs_load():
+    path = _i3d_prefs_cache_path()
+    if not path or not os.path.isfile(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return {}
+        return data
+    except Exception:
+        return {}
+
+def _i3d_prefs_restore_into_prefs(prefs):
+    data = _i3d_prefs_load()
+    if not data:
+        return
+    try:
+        # Only fill in missing path; never overwrite an explicit user selection.
+        if (not getattr(prefs, "game_install_path", "")) and data.get("game_install_path"):
+            prefs.game_install_path = data.get("game_install_path", "")
+        # Restore update flag + channel (safe defaults if missing)
+        if "enable_update_checks" in data:
+            prefs.enable_update_checks = bool(data.get("enable_update_checks"))
+        if data.get("update_channel") in ("STABLE", "BETA", "ALPHA"):
+            prefs.update_channel = data.get("update_channel")
+        if data.get("update_installed_channel") in ("STABLE", "BETA", "ALPHA"):
+            prefs.update_installed_channel = data.get("update_installed_channel")
+        if "update_installed_by_updater" in data:
+            prefs.update_installed_by_updater = bool(data.get("update_installed_by_updater"))
+    except Exception:
+        pass
+
+def _i3d_prefs_on_update(self, context):
+    _i3d_prefs_save_from_prefs(self)
+
+
+
+class I3D_OT_EnableOnlineAccess(bpy.types.Operator):
+    """Enable Blender's System > Network > Allow Online Access"""
+
+    bl_idname = "i3d.enable_online_access"
+    bl_label = "Enable Online Access"
+    bl_description = "Turn on Blender's System > Network > Allow Online Access"
+
+    def execute(self, context):
+        prefs = bpy.context.preferences
+        ok = False
+
+        try:
+            # Blender 4/5 style
+            if hasattr(prefs.system, "use_online_access"):
+                prefs.system.use_online_access = True
+                ok = True
+            # Older/newer variants
+            elif hasattr(prefs.system, "network") and hasattr(prefs.system.network, "use_online_access"):
+                prefs.system.network.use_online_access = True
+                ok = True
+        except Exception as e:
+            self.report({'WARNING'}, "Failed to enable online access: {}".format(e))
+            return {'CANCELLED'}
+
+        if ok:
+            # Force UI refresh
+            try:
+                wm = context.window_manager
+                if wm is not None:
+                    for win in wm.windows:
+                        for area in win.screen.areas:
+                            area.tag_redraw()
+            except Exception:
+                pass
+
+            self.report({'INFO'}, "Blender 'Allow Online Access' enabled.")
+            return {'FINISHED'}
+
+        self.report({'WARNING'}, "Could not locate Blender online access preference.")
+        return {'CANCELLED'}
 
 class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
     """Addon preferences for GIANTS I3D Exporter.
@@ -74,6 +201,7 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         description="Path to the Farming Simulator 25 game folder",
         default="",
         subtype='DIR_PATH',
+            update=_i3d_prefs_on_update,
     )
 
     # --------------------------------------------------------------
@@ -82,7 +210,8 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
     enable_update_checks: bpy.props.BoolProperty(
         name="Enable Update Checks (Internet)",
         description="Allows this add-on to access the internet to check for updates on Blender startup",
-        default=False,
+        default=True,
+            update=_i3d_prefs_on_update,
     )
 
     update_channel: bpy.props.EnumProperty(
@@ -94,6 +223,7 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
             ("ALPHA", "Alpha", "Alpha/dev builds"),
         ],
         default="STABLE",
+            update=_i3d_prefs_on_update,
     )
 
     # Internal: remembers the previously selected update channel in the UI.
@@ -117,16 +247,27 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         options={'HIDDEN'},
     )
 
+
+    # Internal: True if this add-on build was installed by the updater.
+    # Manual installs (drop-in zips) will show as Custom/Manual in the mini menu until an updater install occurs.
+    update_installed_by_updater: bpy.props.BoolProperty(
+        name="",
+        description="Internal flag used for the mini menu. True if this install was placed by the updater.",
+        default=False,
+        options={'HIDDEN'},
+        update=_i3d_prefs_on_update,
+    )
+
     update_manifest_url: bpy.props.StringProperty(
         name="Update Manifest URL",
         description="URL to a JSON file describing the latest versions for each channel",
-        default="https://i3dexportupdatechecker.dtapgaming.com",
+        default="https://raw.githubusercontent.com/dtapgaming/GiantsExporterRework-Blender/main/i3dexport_latest.json",
     )
 
     update_manifest_url_fallback: bpy.props.StringProperty(
         name="Update Manifest URL (Fallback)",
         description="Fallback URL used if the primary manifest URL fails (timeout/offline).",
-        default="https://raw.githubusercontent.com/dtapgaming/GiantsExporterRework-Blender/main/i3dexport_latest.json",
+        default="https://i3dexportupdatechecker.dtapgaming.com",
         options={'HIDDEN'},
     )
 
@@ -149,6 +290,52 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         description="Internal: skip update prompts for this alpha version",
         default="",
         options={'HIDDEN'},
+    )
+
+    update_skip_build_stable: bpy.props.IntProperty(
+        name="Skip Build (Stable)",
+        description="Internal: skip update prompts for this stable build",
+        default=0,
+        options={'HIDDEN'},
+    )
+
+    update_skip_build_beta: bpy.props.IntProperty(
+        name="Skip Build (Beta)",
+        description="Internal: skip update prompts for this beta build",
+        default=0,
+        options={'HIDDEN'},
+    )
+
+    update_skip_build_alpha: bpy.props.IntProperty(
+        name="Skip Build (Alpha)",
+        description="Internal: skip update prompts for this alpha build",
+        default=0,
+        options={'HIDDEN'},
+    )
+
+
+    update_last_action: bpy.props.StringProperty(
+    name="Update Last Action (Internal)",
+    description="Internal: short summary of the last update action shown in the statusbar menu",
+    default="",
+    options={'HIDDEN'},
+    )
+
+    update_last_action_ts: bpy.props.IntProperty(
+    name="Update Last Action Timestamp (Internal)",
+    description="Internal: unix timestamp for update_last_action",
+    default=0,
+    options={'HIDDEN'},
+    )
+
+
+    # --------------------------------------------------------------
+    # Color Library UI
+    # --------------------------------------------------------------
+    colorlib_name_ratio: bpy.props.FloatProperty(
+        name="Color List: Name Column",
+        description="Width of the name column in the Color Library lists (applies to My, GIANTS, and Popular tabs)",
+        default=0.50, min=0.40, max=0.90,
     )
 
     def draw(self, context):
@@ -193,6 +380,7 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
             warn = body.box()
             warn.alert = True
             warn.label(text="Blender 'Allow Online Access' is OFF. Update checks are blocked.", icon='ERROR')
+            warn.operator("i3d.enable_online_access", text="Enable Online Access", icon='INTERNET')
 
         body.prop(self, "update_channel")
 
@@ -210,16 +398,75 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
             import importlib
             mod = importlib.import_module("io_export_i3d_reworked")
             v = mod.bl_info.get("version", (0, 0, 0))
-            body.label(text="Installed Version: {:d}.{:d}.{:d}".format(int(v[0]), int(v[1]), int(v[2])))
+            b = getattr(mod, "I3D_REWORKED_BUILD", 0)
+            body.label(text="Installed Version: {:d}.{:d}.{:d}.{:d}".format(int(v[0]), int(v[1]), int(v[2]), int(b)))
         except Exception:
             pass
 
-
-
-
+        # --------------------------------------------------------------
+        # Color Library UI
+        # --------------------------------------------------------------
+        layout.separator()
+        layout.label(text="Color Library UI")
+        layout.prop(self, "colorlib_name_ratio", slider=True)
 def register():
-    bpy.utils.register_class(I3DExporterAddonPreferences)
+    # Best-effort cleanup so reinstall/reload doesn't require restarting Blender.
+    try:
+        _existing = getattr(bpy.types, "I3D_OT_EnableOnlineAccess", None)
+        if _existing is not None:
+            try:
+                bpy.utils.unregister_class(_existing)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    try:
+        _existing = getattr(bpy.types, "I3DExporterAddonPreferences", None)
+        if _existing is not None:
+            try:
+                bpy.utils.unregister_class(_existing)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    try:
+        bpy.utils.register_class(I3D_OT_EnableOnlineAccess)
+    except RuntimeError as e:
+        if "already registered" not in str(e):
+            raise
+
+    try:
+        bpy.utils.register_class(I3DExporterAddonPreferences)
+    except RuntimeError as e:
+        if "already registered" not in str(e):
+            raise
+
+    # Restore persisted prefs (survive uninstall/reinstall rollbacks)
+    try:
+        prefs = _i3d_find_addon_prefs()
+        if prefs is not None:
+            _i3d_prefs_restore_into_prefs(prefs)
+            _i3d_prefs_save_from_prefs(prefs)
+    except Exception:
+        pass
 
 def unregister():
-    bpy.utils.unregister_class(I3DExporterAddonPreferences)
+    # Save prefs before unregister (best effort)
+    try:
+        prefs = _i3d_find_addon_prefs()
+        if prefs is not None:
+            _i3d_prefs_save_from_prefs(prefs)
+    except Exception:
+        pass
 
+    try:
+        bpy.utils.unregister_class(I3DExporterAddonPreferences)
+    except RuntimeError:
+        pass
+
+    try:
+        bpy.utils.unregister_class(I3D_OT_EnableOnlineAccess)
+    except RuntimeError:
+        pass

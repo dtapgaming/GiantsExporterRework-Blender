@@ -2,6 +2,20 @@ import bpy
 import os
 
 
+try:
+    from ..util import i3d_directoryFinderUtil as dirf
+except Exception:
+    dirf = None
+
+
+def _strip_wrapping_quotes(p):
+    if p is None:
+        return ""
+    s = str(p).strip()
+    if len(s) >= 2 and ((s[0] == s[-1] == '"') or (s[0] == s[-1] == "'")):
+        s = s[1:-1].strip()
+    return s
+
 def _get_addon_prefs_addon():
     """Return the Addon entry from bpy.context.preferences.addons for this addon.
 
@@ -32,11 +46,11 @@ def _get_addon_prefs_addon():
 
 def getGamePath():
     addon = _get_addon_prefs_addon()
-    if addon and hasattr(addon, "preferences") and getattr(addon.preferences, "game_install_path", ""):
-        return addon.preferences.game_install_path
+    if addon and hasattr(addon, "preferences"):
+        game_path = _strip_wrapping_quotes(getattr(addon.preferences, "game_install_path", ""))
+        if game_path:
+            return game_path
     return ""
-
-
 def resolveGiantsPath(path, game_install_path=None):
     """Resolve GIANTS-style paths that begin with '$' against the FS install path.
 
@@ -52,12 +66,22 @@ def resolveGiantsPath(path, game_install_path=None):
         return path
 
     game_path = game_install_path if game_install_path is not None else getGamePath()
+    game_path = _strip_wrapping_quotes(game_path)
+    if not game_path:
+        # If user didn't set the install path, try auto-detection on Windows.
+        if dirf is not None:
+            try:
+                if dirf.isWindows():
+                    game_path = _strip_wrapping_quotes(dirf.findFS22Path())
+            except Exception:
+                game_path = ""
     if not game_path:
         return ""
 
     # Expand Blender's path formatting (supports '//' etc.)
     try:
         game_path = bpy.path.abspath(game_path)
+        game_path = _strip_wrapping_quotes(game_path)
     except Exception:
         pass
 

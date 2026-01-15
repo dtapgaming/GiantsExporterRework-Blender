@@ -26,7 +26,10 @@ _MODULES = {
     '.vehicleArrayTool.vehicleArrayTool' : None,
     '.vertexColorTool': None,
     '.splinesTool':None,
-    '.DeltaVertex': None
+    '.moddersEdgeToolset': None,
+    '.DeltaVertex': None,
+    '.trackArrayTools': None,
+    '.i3d_vehicle_light_tool': None
 }
 
 for module in _MODULES.keys():

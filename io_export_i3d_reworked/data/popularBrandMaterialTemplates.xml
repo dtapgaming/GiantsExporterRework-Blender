@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<templates id="popularColor" name="Popular Brand Colors">
+    <template name="ALLISCHALMERS_BLACK" brand="ALLIS-CHALMERS" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="ALLISCHALMERS_GRAY" brand="ALLIS-CHALMERS" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="ALLISCHALMERS_ORANGE" brand="ALLIS-CHALMERS" title="Orange" usage="0" colorScale="0.7255 0.2039 0.0824" />
+    <template name="ALLISCHALMERS_ORANGE2" brand="ALLIS-CHALMERS" title="Orange (Persian)" usage="0" colorScale="0.7569 0.2078 0.0863" />
+    <template name="ALLISCHALMERS_ORANGE2_DARK" brand="ALLIS-CHALMERS" title="Orange (Persian) (Dark)" usage="0" colorScale="0.4920 0.1351 0.0561" />
+    <template name="ALLISCHALMERS_ORANGE2_LIGHT" brand="ALLIS-CHALMERS" title="Orange (Persian) (Light)" usage="0" colorScale="0.8420 0.4851 0.4061" />
+    <template name="ALLISCHALMERS_SILVER" brand="ALLIS-CHALMERS" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="ALLISCHALMERS_WHITE" brand="ALLIS-CHALMERS" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="AUDI_BLACK" brand="AUDI" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="AUDI_GRAY" brand="AUDI" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="AUDI_RED" brand="AUDI" title="Red" usage="0" colorScale="0.9608 0.0196 0.2196" />
+    <template name="AUDI_RED_DARK" brand="AUDI" title="Red (Dark)" usage="0" colorScale="0.6245 0.0127 0.1427" />
+    <template name="AUDI_RED_LIGHT" brand="AUDI" title="Red (Light)" usage="0" colorScale="0.9745 0.3627 0.4927" />
+    <template name="AUDI_SILVER" brand="AUDI" title="Silver" usage="0" colorScale="0.5412 0.5529 0.5608" />
+    <template name="AUDI_SILVER_2" brand="AUDI" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="AUDI_WHITE" brand="AUDI" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="BMW_BLACK" brand="BMW" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="BMW_BLUE" brand="BMW" title="Blue" usage="0" colorScale="0.0039 0.4000 0.6941" />
+    <template name="BMW_BLUE_DARK" brand="BMW" title="Blue (Dark)" usage="0" colorScale="0.0025 0.2600 0.4512" />
+    <template name="BMW_BLUE_LIGHT" brand="BMW" title="Blue (Light)" usage="0" colorScale="0.3525 0.6100 0.8012" />
+    <template name="BMW_GRAY" brand="BMW" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="BMW_SILVER" brand="BMW" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="BMW_WHITE" brand="BMW" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="CATERPILLAR_BLACK" brand="CATERPILLAR" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="CATERPILLAR_GRAY" brand="CATERPILLAR" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="CATERPILLAR_SILVER" brand="CATERPILLAR" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="CATERPILLAR_WHITE" brand="CATERPILLAR" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="CATERPILLAR_YELLOW" brand="CATERPILLAR" title="Yellow" usage="0" colorScale="1.0000 0.7725 0.0000" />
+    <template name="CATERPILLAR_YELLOW_DARK" brand="CATERPILLAR" title="Yellow (Dark)" usage="0" colorScale="0.6500 0.5021 0.0000" />
+    <template name="CATERPILLAR_YELLOW_LIGHT" brand="CATERPILLAR" title="Yellow (Light)" usage="0" colorScale="1.0000 0.8521 0.3500" />
+    <template name="CHEVROLET_BLACK" brand="CHEVROLET" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="CHEVROLET_BLUE" brand="CHEVROLET" title="Blue" usage="0" colorScale="0.0980 0.2627 0.5647" />
+    <template name="CHEVROLET_BLUE_DARK" brand="CHEVROLET" title="Blue (Dark)" usage="0" colorScale="0.0637 0.1708 0.3671" />
+    <template name="CHEVROLET_BLUE_LIGHT" brand="CHEVROLET" title="Blue (Light)" usage="0" colorScale="0.4137 0.5208 0.7171" />
+    <template name="CHEVROLET_DARKGRAY" brand="CHEVROLET" title="Dark Gray" usage="0" colorScale="0.2118 0.2118 0.2118" />
+    <template name="CHEVROLET_GOLD" brand="CHEVROLET" title="Gold" usage="0" colorScale="0.8196 0.6784 0.3412" />
+    <template name="CHEVROLET_GOLD_DARK" brand="CHEVROLET" title="Gold (Dark)" usage="0" colorScale="0.5327 0.4410 0.2218" />
+    <template name="CHEVROLET_GOLD_LIGHT" brand="CHEVROLET" title="Gold (Light)" usage="0" colorScale="0.8827 0.7910 0.5718" />
+    <template name="CHEVROLET_GRAY" brand="CHEVROLET" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="CHEVROLET_RED" brand="CHEVROLET" title="Red" usage="0" colorScale="0.7686 0.2667 0.1647" />
+    <template name="CHEVROLET_RED_DARK" brand="CHEVROLET" title="Red (Dark)" usage="0" colorScale="0.4996 0.1733 0.1071" />
+    <template name="CHEVROLET_RED_LIGHT" brand="CHEVROLET" title="Red (Light)" usage="0" colorScale="0.8496 0.5233 0.4571" />
+    <template name="CHEVROLET_SILVER" brand="CHEVROLET" title="Silver" usage="0" colorScale="0.6235 0.6588 0.6549" />
+    <template name="CHEVROLET_SILVER_2" brand="CHEVROLET" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="CHEVROLET_WHITE" brand="CHEVROLET" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="DODGE_BLACK" brand="DODGE" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="DODGE_GRAY" brand="DODGE" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="DODGE_RED" brand="DODGE" title="Red" usage="0" colorScale="0.8549 0.0000 0.0000" />
+    <template name="DODGE_RED_DARK" brand="DODGE" title="Red (Dark)" usage="0" colorScale="0.5557 0.0000 0.0000" />
+    <template name="DODGE_RED_LIGHT" brand="DODGE" title="Red (Light)" usage="0" colorScale="0.9057 0.3500 0.3500" />
+    <template name="DODGE_SILVER" brand="DODGE" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="DODGE_WHITE" brand="DODGE" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="FERRARI_BLACK" brand="FERRARI" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="FERRARI_GRAY" brand="FERRARI" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="FERRARI_RED" brand="FERRARI" title="Red" usage="0" colorScale="0.8941 0.1451 0.1569" />
+    <template name="FERRARI_RED_DARK" brand="FERRARI" title="Red (Dark)" usage="0" colorScale="0.5812 0.0943 0.1020" />
+    <template name="FERRARI_RED_LIGHT" brand="FERRARI" title="Red (Light)" usage="0" colorScale="0.9312 0.4443 0.4520" />
+    <template name="FERRARI_SILVER" brand="FERRARI" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="FERRARI_WHITE" brand="FERRARI" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="FERRARI_YELLOW" brand="FERRARI" title="Yellow" usage="0" colorScale="0.9725 0.9098 0.1373" />
+    <template name="FERRARI_YELLOW_DARK" brand="FERRARI" title="Yellow (Dark)" usage="0" colorScale="0.6321 0.5914 0.0892" />
+    <template name="FERRARI_YELLOW_LIGHT" brand="FERRARI" title="Yellow (Light)" usage="0" colorScale="0.9821 0.9414 0.4392" />
+    <template name="FORD_BLACK" brand="FORD" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="FORD_BLUE" brand="FORD" title="Blue" usage="0" colorScale="0.0000 0.2039 0.4706" />
+    <template name="FORD_DARKBLUE" brand="FORD" title="Dark Blue" usage="0" colorScale="0.0745 0.2275 0.4863" />
+    <template name="FORD_GRAY" brand="FORD" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="FORD_LIGHTBLUE" brand="FORD" title="Light Blue" usage="0" colorScale="0.2784 0.6588 0.8980" />
+    <template name="FORD_LIGHTBLUE_DARK" brand="FORD" title="Light Blue (Dark)" usage="0" colorScale="0.1810 0.4282 0.5837" />
+    <template name="FORD_LIGHTBLUE_LIGHT" brand="FORD" title="Light Blue (Light)" usage="0" colorScale="0.5310 0.7782 0.9337" />
+    <template name="FORD_MEDBLUE" brand="FORD" title="Medium Blue" usage="0" colorScale="0.1647 0.4196 0.6745" />
+    <template name="FORD_MEDBLUE_DARK" brand="FORD" title="Medium Blue (Dark)" usage="0" colorScale="0.1071 0.2727 0.4384" />
+    <template name="FORD_MEDBLUE_LIGHT" brand="FORD" title="Medium Blue (Light)" usage="0" colorScale="0.4571 0.6227 0.7884" />
+    <template name="FORD_NAVY" brand="FORD" title="Navy" usage="0" colorScale="0.0314 0.0824 0.2039" />
+    <template name="FORD_PERFORMANCE_RED" brand="FORD" title="Performance Red" usage="0" colorScale="0.8078 0.1451 0.1255" />
+    <template name="FORD_PERFORMANCE_RED_DARK" brand="FORD" title="Performance Red (Dark)" usage="0" colorScale="0.5251 0.0943 0.0816" />
+    <template name="FORD_PERFORMANCE_RED_LIGHT" brand="FORD" title="Performance Red (Light)" usage="0" colorScale="0.8751 0.4443 0.4316" />
+    <template name="FORD_SILVER" brand="FORD" title="Silver" usage="0" colorScale="0.7765 0.7765 0.7765" />
+    <template name="FORD_SILVER_2" brand="FORD" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="FORD_WHITE" brand="FORD" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="FREIGHTLINER_BLACK" brand="FREIGHTLINER" title="Black" usage="0" colorScale="0.1451 0.1451 0.1451" />
+    <template name="FREIGHTLINER_BLACK_2" brand="FREIGHTLINER" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="FREIGHTLINER_BLUE" brand="FREIGHTLINER" title="Blue" usage="0" colorScale="0.0000 0.1804 0.3529" />
+    <template name="FREIGHTLINER_DARKGRAY" brand="FREIGHTLINER" title="Dark Gray" usage="0" colorScale="0.1451 0.1451 0.1451" />
+    <template name="FREIGHTLINER_GRAY" brand="FREIGHTLINER" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="FREIGHTLINER_SILVER" brand="FREIGHTLINER" title="Silver" usage="0" colorScale="0.7216 0.7216 0.7216" />
+    <template name="FREIGHTLINER_WHITE" brand="FREIGHTLINER" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="FREIGHTLINER_WHITE_2" brand="FREIGHTLINER" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="GMC_BLACK" brand="GMC" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="GMC_BLUE" brand="GMC" title="Blue" usage="0" colorScale="0.1216 0.2471 0.5922" />
+    <template name="GMC_BLUE_DARK" brand="GMC" title="Blue (Dark)" usage="0" colorScale="0.0790 0.1606 0.3849" />
+    <template name="GMC_BLUE_LIGHT" brand="GMC" title="Blue (Light)" usage="0" colorScale="0.4290 0.5106 0.7349" />
+    <template name="GMC_DARKRED" brand="GMC" title="Dark Red" usage="0" colorScale="0.5451 0.0000 0.0000" />
+    <template name="GMC_DARKRED_DARK" brand="GMC" title="Dark Red (Dark)" usage="0" colorScale="0.3543 0.0000 0.0000" />
+    <template name="GMC_DARKRED_LIGHT" brand="GMC" title="Dark Red (Light)" usage="0" colorScale="0.7043 0.3500 0.3500" />
+    <template name="GMC_GRAY" brand="GMC" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="GMC_RED" brand="GMC" title="Red" usage="0" colorScale="0.7255 0.0314 0.1059" />
+    <template name="GMC_RED_DARK" brand="GMC" title="Red (Dark)" usage="0" colorScale="0.4716 0.0204 0.0688" />
+    <template name="GMC_RED_LIGHT" brand="GMC" title="Red (Light)" usage="0" colorScale="0.8216 0.3704 0.4188" />
+    <template name="GMC_SILVER" brand="GMC" title="Silver" usage="0" colorScale="0.5804 0.5882 0.6235" />
+    <template name="GMC_SILVER_2" brand="GMC" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="GMC_WHITE" brand="GMC" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="HONDA_BLACK" brand="HONDA" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="HONDA_GRAY" brand="HONDA" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="HONDA_RED" brand="HONDA" title="Red" usage="0" colorScale="0.8941 0.0196 0.1294" />
+    <template name="HONDA_RED_DARK" brand="HONDA" title="Red (Dark)" usage="0" colorScale="0.5812 0.0127 0.0841" />
+    <template name="HONDA_RED_LIGHT" brand="HONDA" title="Red (Light)" usage="0" colorScale="0.9312 0.3627 0.4341" />
+    <template name="HONDA_SILVER" brand="HONDA" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="HONDA_WHITE" brand="HONDA" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="JEEP_BLACK" brand="JEEP" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="JEEP_GRAY" brand="JEEP" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="JEEP_GREEN" brand="JEEP" title="Green" usage="0" colorScale="0.2588 0.3020 0.0275" />
+    <template name="JEEP_GREEN_DARK" brand="JEEP" title="Green (Dark)" usage="0" colorScale="0.1682 0.1963 0.0179" />
+    <template name="JEEP_GREEN_LIGHT" brand="JEEP" title="Green (Light)" usage="0" colorScale="0.5182 0.5463 0.3679" />
+    <template name="JEEP_SILVER" brand="JEEP" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="JEEP_WHITE" brand="JEEP" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="KENWORTH_BLACK" brand="KENWORTH" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="KENWORTH_GRAY" brand="KENWORTH" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="KENWORTH_RED" brand="KENWORTH" title="Red" usage="0" colorScale="0.8431 0.0980 0.1294" />
+    <template name="KENWORTH_RED_DARK" brand="KENWORTH" title="Red (Dark)" usage="0" colorScale="0.5480 0.0637 0.0841" />
+    <template name="KENWORTH_RED_LIGHT" brand="KENWORTH" title="Red (Light)" usage="0" colorScale="0.8980 0.4137 0.4341" />
+    <template name="KENWORTH_SILVER" brand="KENWORTH" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="KENWORTH_WHITE" brand="KENWORTH" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="LAMBORGHINI_BLACK" brand="LAMBORGHINI" title="Black" usage="0" colorScale="0.0157 0.0157 0.0157" />
+    <template name="LAMBORGHINI_GOLD" brand="LAMBORGHINI" title="Gold" usage="0" colorScale="0.8471 0.6275 0.0863" />
+    <template name="LAMBORGHINI_GOLD_DARK" brand="LAMBORGHINI" title="Gold (Dark)" usage="0" colorScale="0.5506 0.4079 0.0561" />
+    <template name="LAMBORGHINI_GOLD_LIGHT" brand="LAMBORGHINI" title="Gold (Light)" usage="0" colorScale="0.9006 0.7579 0.4061" />
+    <template name="LAMBORGHINI_GRAY" brand="LAMBORGHINI" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="LAMBORGHINI_SILVER" brand="LAMBORGHINI" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="LAMBORGHINI_WHITE" brand="LAMBORGHINI" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="MERCEDES_BLACK" brand="MERCEDES-BENZ" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="MERCEDES_DARKBLUE" brand="MERCEDES-BENZ" title="Dark Blue" usage="0" colorScale="0.0431 0.1216 0.1647" />
+    <template name="MERCEDESBENZ_MERCEDES_DARKBLUE_DARK" brand="MERCEDES-BENZ" title="Dark Blue (Dark)" usage="0" colorScale="0.0280 0.0790 0.1071" />
+    <template name="MERCEDESBENZ_MERCEDES_DARKBLUE_LIGHT" brand="MERCEDES-BENZ" title="Dark Blue (Light)" usage="0" colorScale="0.3780 0.4290 0.4571" />
+    <template name="MERCEDESBENZ_GRAY" brand="MERCEDES-BENZ" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="MERCEDES_SILVER" brand="MERCEDES-BENZ" title="Silver" usage="0" colorScale="0.6431 0.6667 0.6824" />
+    <template name="MERCEDESBENZ_SILVER" brand="MERCEDES-BENZ" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="MERCEDES_WHITE" brand="MERCEDES-BENZ" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="NISSAN_BLACK" brand="NISSAN" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="NISSAN_GRAY" brand="NISSAN" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="NISSAN_RED" brand="NISSAN" title="Red" usage="0" colorScale="0.7647 0.0000 0.1843" />
+    <template name="NISSAN_RED_DARK" brand="NISSAN" title="Red (Dark)" usage="0" colorScale="0.4971 0.0000 0.1198" />
+    <template name="NISSAN_RED_LIGHT" brand="NISSAN" title="Red (Light)" usage="0" colorScale="0.8471 0.3500 0.4698" />
+    <template name="NISSAN_SILVER" brand="NISSAN" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="NISSAN_WHITE" brand="NISSAN" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="PETERBILT_BLACK" brand="PETERBILT" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="PETERBILT_GRAY" brand="PETERBILT" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="PETERBILT_RED" brand="PETERBILT" title="Red" usage="0" colorScale="0.7490 0.1255 0.1490" />
+    <template name="PETERBILT_RED_DARK" brand="PETERBILT" title="Red (Dark)" usage="0" colorScale="0.4869 0.0816 0.0969" />
+    <template name="PETERBILT_RED_LIGHT" brand="PETERBILT" title="Red (Light)" usage="0" colorScale="0.8368 0.4316 0.4468" />
+    <template name="PETERBILT_SILVER" brand="PETERBILT" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="PETERBILT_WHITE" brand="PETERBILT" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="PORSCHE_BLACK" brand="PORSCHE" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="PORSCHE_GOLD" brand="PORSCHE" title="Gold" usage="0" colorScale="0.9216 0.8392 0.5961" />
+    <template name="PORSCHE_GOLD_DARK" brand="PORSCHE" title="Gold (Dark)" usage="0" colorScale="0.5990 0.5455 0.3875" />
+    <template name="PORSCHE_GOLD_LIGHT" brand="PORSCHE" title="Gold (Light)" usage="0" colorScale="0.9490 0.8955 0.7375" />
+    <template name="PORSCHE_GRAY" brand="PORSCHE" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="PORSCHE_RED" brand="PORSCHE" title="Red" usage="0" colorScale="0.6941 0.1686 0.1569" />
+    <template name="PORSCHE_RED_DARK" brand="PORSCHE" title="Red (Dark)" usage="0" colorScale="0.4512 0.1096 0.1020" />
+    <template name="PORSCHE_RED_LIGHT" brand="PORSCHE" title="Red (Light)" usage="0" colorScale="0.8012 0.4596 0.4520" />
+    <template name="PORSCHE_SILVER" brand="PORSCHE" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="PORSCHE_WHITE" brand="PORSCHE" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="RAM_BLACK" brand="RAM" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="RAM_GRAY" brand="RAM" title="Grey" usage="0" colorScale="0.4627 0.4627 0.4627" />
+    <template name="RAM_RED" brand="RAM" title="Red" usage="0" colorScale="0.7098 0.0706 0.1059" />
+    <template name="RAM_SILVER" brand="RAM" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="RAM_SILVER3" brand="RAM" title="Silver (Dark)" usage="0" colorScale="0.7451 0.7529 0.7725" />
+    <template name="RAM_SILVER2" brand="RAM" title="Silver (Light)" usage="0" colorScale="0.8627 0.8706 0.8902" />
+    <template name="RAM_WHITE" brand="RAM" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="SUBARU_BLACK" brand="SUBARU" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="SUBARU_BLUE" brand="SUBARU" title="Blue" usage="0" colorScale="0.0000 0.2824 0.5647" />
+    <template name="SUBARU_BLUE_DARK" brand="SUBARU" title="Blue (Dark)" usage="0" colorScale="0.0000 0.1836 0.3671" />
+    <template name="SUBARU_BLUE_LIGHT" brand="SUBARU" title="Blue (Light)" usage="0" colorScale="0.3500 0.5336 0.7171" />
+    <template name="SUBARU_GRAY" brand="SUBARU" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="SUBARU_SILVER" brand="SUBARU" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="SUBARU_WHITE" brand="SUBARU" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="TESLA_BLACK" brand="TESLA" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="TESLA_GRAY" brand="TESLA" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="TESLA_RED" brand="TESLA" title="Red" usage="0" colorScale="0.8902 0.0980 0.2157" />
+    <template name="TESLA_RED_DARK" brand="TESLA" title="Red (Dark)" usage="0" colorScale="0.5786 0.0637 0.1402" />
+    <template name="TESLA_RED_LIGHT" brand="TESLA" title="Red (Light)" usage="0" colorScale="0.9286 0.4137 0.4902" />
+    <template name="TESLA_SILVER" brand="TESLA" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="TESLA_WHITE" brand="TESLA" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="TOYOTA_BLACK" brand="TOYOTA" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="TOYOTA_GRAY" brand="TOYOTA" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="TOYOTA_RED" brand="TOYOTA" title="Red" usage="0" colorScale="0.9216 0.0392 0.1176" />
+    <template name="TOYOTA_RED_DARK" brand="TOYOTA" title="Red (Dark)" usage="0" colorScale="0.5990 0.0255 0.0764" />
+    <template name="TOYOTA_RED_LIGHT" brand="TOYOTA" title="Red (Light)" usage="0" colorScale="0.9490 0.3755 0.4264" />
+    <template name="TOYOTA_SILVER" brand="TOYOTA" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="TOYOTA_WHITE" brand="TOYOTA" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="VOLKSWAGEN_BLACK" brand="VOLKSWAGEN" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="VOLKSWAGEN_BLUE" brand="VOLKSWAGEN" title="Blue" usage="0" colorScale="0.0000 0.1176 0.3137" />
+    <template name="VOLKSWAGEN_BLUE_DARK" brand="VOLKSWAGEN" title="Blue (Dark)" usage="0" colorScale="0.0000 0.0764 0.2039" />
+    <template name="VOLKSWAGEN_BLUE_LIGHT" brand="VOLKSWAGEN" title="Blue (Light)" usage="0" colorScale="0.3500 0.4264 0.5539" />
+    <template name="VOLKSWAGEN_GRAY" brand="VOLKSWAGEN" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="VOLKSWAGEN_SILVER" brand="VOLKSWAGEN" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="VOLKSWAGEN_WHITE" brand="VOLKSWAGEN" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="MACK_BLACK" brand="MACK" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="MACK_GRAY" brand="MACK" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="MACK_SILVER" brand="MACK" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="MACK_WHITE" brand="MACK" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="MACK_GREEN" brand="MACK" title="Mack Green" usage="0" colorScale="0.0000 0.2941 0.1529" />
+    <template name="MACK_GREEN_DARK" brand="MACK" title="Mack Green (Dark)" usage="0" colorScale="0.0000 0.1912 0.0996" />
+    <template name="MACK_GREEN_LIGHT" brand="MACK" title="Mack Green (Light)" usage="0" colorScale="0.3500 0.5412 0.4471" />
+    <template name="MACK_RED" brand="MACK" title="Red" usage="0" colorScale="0.7804 0.0784 0.1020" />
+    <template name="MACK_RED_DARK" brand="MACK" title="Red (Dark)" usage="0" colorScale="0.5073 0.0510 0.0663" />
+    <template name="MACK_RED_LIGHT" brand="MACK" title="Red (Light)" usage="0" colorScale="0.8573 0.4010 0.4163" />
+    <template name="INTERNATIONAL_BLACK" brand="INTERNATIONAL" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="INTERNATIONAL_GRAY" brand="INTERNATIONAL" title="Gray" usage="0" colorScale="0.4600 0.4600 0.4600" />
+    <template name="INTERNATIONAL_SILVER" brand="INTERNATIONAL" title="Silver" usage="0" colorScale="0.7200 0.7200 0.7200" />
+    <template name="INTERNATIONAL_WHITE" brand="INTERNATIONAL" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="INTERNATIONAL_RED" brand="INTERNATIONAL" title="International Red" usage="0" colorScale="0.8235 0.0667 0.1098" />
+    <template name="INTERNATIONAL_RED_DARK" brand="INTERNATIONAL" title="International Red (Dark)" usage="0" colorScale="0.5353 0.0433 0.0714" />
+    <template name="INTERNATIONAL_RED_LIGHT" brand="INTERNATIONAL" title="International Red (Light)" usage="0" colorScale="0.8853 0.3933 0.4214" />
+    <template name="INTERNATIONAL_BLUE" brand="INTERNATIONAL" title="Blue" usage="0" colorScale="0.0824 0.2275 0.4863" />
+    <template name="INTERNATIONAL_BLUE_DARK" brand="INTERNATIONAL" title="Blue (Dark)" usage="0" colorScale="0.0536 0.1479 0.3161" />
+    <template name="INTERNATIONAL_BLUE_LIGHT" brand="INTERNATIONAL" title="Blue (Light)" usage="0" colorScale="0.4036 0.4979 0.6661" />
+    <template name="YOUTUBE_RED" brand="YOUTUBE" title="YouTube Red" usage="0" colorScale="1.0000 0.0000 0.0000" />
+    <template name="YOUTUBE_RED_DARK" brand="YOUTUBE" title="YouTube Red (Dark)" usage="0" colorScale="0.6500 0.0000 0.0000" />
+    <template name="YOUTUBE_RED_LIGHT" brand="YOUTUBE" title="YouTube Red (Light)" usage="0" colorScale="1.0000 0.3500 0.3500" />
+    <template name="YOUTUBE_ALMOSTBLACK" brand="YOUTUBE" title="Almost Black" usage="0" colorScale="0.1569 0.1569 0.1569" />
+    <template name="YOUTUBE_WHITE" brand="YOUTUBE" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="TWITCH_PURPLE" brand="TWITCH" title="Twitch Purple" usage="0" colorScale="0.5686 0.2745 1.0000" />
+    <template name="TWITCH_PURPLE_DARK" brand="TWITCH" title="Twitch Purple (Dark)" usage="0" colorScale="0.3696 0.1784 0.6500" />
+    <template name="TWITCH_PURPLE_LIGHT" brand="TWITCH" title="Twitch Purple (Light)" usage="0" colorScale="0.7196 0.5284 1.0000" />
+    <template name="TWITCH_LAVENDER" brand="TWITCH" title="Lavender" usage="0" colorScale="0.8902 0.8431 1.0000" />
+    <template name="TWITCH_BLACK" brand="TWITCH" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="TWITCH_WHITE" brand="TWITCH" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="KICK_GREEN" brand="KICK" title="Kick Green" usage="0" colorScale="0.0000 0.9059 0.0039" />
+    <template name="KICK_GREEN_DARK" brand="KICK" title="Kick Green (Dark)" usage="0" colorScale="0.0000 0.5888 0.0025" />
+    <template name="KICK_GREEN_LIGHT" brand="KICK" title="Kick Green (Light)" usage="0" colorScale="0.3500 0.9388 0.3525" />
+    <template name="KICK_GREEN_NEON" brand="KICK" title="Kick Green (Neon)" usage="0" colorScale="0.3255 0.9882 0.0941" />
+    <template name="KICK_DARK" brand="KICK" title="Dark" usage="0" colorScale="0.0431 0.0549 0.0588" />
+    <template name="KICK_BLACK" brand="KICK" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="KICK_WHITE" brand="KICK" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="TIKTOK_PINK" brand="TIKTOK" title="TikTok Pink" usage="0" colorScale="0.9961 0.1725 0.3333" />
+    <template name="TIKTOK_PINK_DARK" brand="TIKTOK" title="TikTok Pink (Dark)" usage="0" colorScale="0.6475 0.1122 0.2167" />
+    <template name="TIKTOK_PINK_LIGHT" brand="TIKTOK" title="TikTok Pink (Light)" usage="0" colorScale="0.9975 0.4622 0.5667" />
+    <template name="TIKTOK_AQUA" brand="TIKTOK" title="TikTok Aqua" usage="0" colorScale="0.1451 0.9569 0.9333" />
+    <template name="TIKTOK_AQUA_DARK" brand="TIKTOK" title="TikTok Aqua (Dark)" usage="0" colorScale="0.0943 0.6220 0.6067" />
+    <template name="TIKTOK_AQUA_LIGHT" brand="TIKTOK" title="TikTok Aqua (Light)" usage="0" colorScale="0.4443 0.9720 0.9567" />
+    <template name="TIKTOK_BLACK" brand="TIKTOK" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="TIKTOK_WHITE" brand="TIKTOK" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    <template name="RUMBLE_GREEN" brand="RUMBLE" title="Rumble Green" usage="0" colorScale="0.5216 0.7804 0.2588" />
+    <template name="RUMBLE_GREEN_DARK" brand="RUMBLE" title="Rumble Green (Dark)" usage="0" colorScale="0.3390 0.5073 0.1682" />
+    <template name="RUMBLE_GREEN_LIGHT" brand="RUMBLE" title="Rumble Green (Light)" usage="0" colorScale="0.6890 0.8573 0.5182" />
+    <template name="RUMBLE_BLACK" brand="RUMBLE" title="Black" usage="0" colorScale="0.0000 0.0000 0.0000" />
+    <template name="RUMBLE_WHITE" brand="RUMBLE" title="White" usage="0" colorScale="1.0000 1.0000 1.0000" />
+    </templates>
+

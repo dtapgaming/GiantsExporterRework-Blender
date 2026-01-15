@@ -138,8 +138,30 @@ def I3DExportDDS():
     endTime = time.time()
     dcc.UIAddMessage('DDS Export time is {0:.2f} ms'.format((endTime - startTime) * 1000))
 
+# --------------------------------------------------------------
+# Safe changelog popup (Blender 5+): never call bpy.ops from draw()
+# --------------------------------------------------------------
+_I3D_CHANGELOG_SCHEDULED = False
+
+def _i3d_changelog_timer():
+    global _I3D_CHANGELOG_SCHEDULED
+    try:
+        bpy.ops.object.change_log_operator('INVOKE_DEFAULT')
+    except RuntimeError:
+        return 0.25
+    except Exception as e:
+        print(e)
+        _I3D_CHANGELOG_SCHEDULED = False
+        return None
+    _I3D_CHANGELOG_SCHEDULED = False
+    return None
+
 def I3DShowChangelog():
-    bpy.ops.object.change_log_operator('INVOKE_DEFAULT')
+    global _I3D_CHANGELOG_SCHEDULED
+    if _I3D_CHANGELOG_SCHEDULED:
+        return
+    _I3D_CHANGELOG_SCHEDULED = True
+    bpy.app.timers.register(_i3d_changelog_timer, first_interval=0.1)
 
 #------------------------------------------------------------------------
 # Classes
@@ -1633,7 +1655,7 @@ class I3DIOexport( object ):
             dcc.UIAddMessage('BUILD BINARY')
             gamepath = ""
             if ("i3D_gameLocationDisplay" in bpy.context.scene.I3D_UIexportSettings):
-                gamepath = bpy.context.scene.I3D_UIexportSettings['i3D_gameLocationDisplay']
+                gamepath = bpy.context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay
             msgList = i3d_binaryUtil.create_binary_from_exe(filepath, gamepath)
             for msg in msgList:
                 dcc.UIAddMessage(msg)
