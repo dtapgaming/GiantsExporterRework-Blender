@@ -36,14 +36,28 @@
         0
       ],
       "download": {
-        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.17.10BETA/io_export_i3d_reworked.zip"
+        "primary": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/download/10.0.17.63ALPHA/io_export_i3d_reworked.zip"
       },
       "notes": [
-        "Added a Color Library Tool with 3 tabs of Libraries (User created/Giants Brands/Popular Color Library {colors are based off of hex colors from public documents so its possible some popular ones could be wrong but more likely they just dont look right in blenders lighting} )"
+        "Unsaved .blend safety for \u201cExport Object Data Texture\u201d If the blend isn\u2019t saved, it now prompts the user to choose where to save curveArray.dds (instead of writing to a dangerous/odd default).",
+        "Vehicle Light Tool validation + selection",
+        "Validation now updates mesh/UV data so Object Mode doesn\u2019t miss UV-out-of-tile errors.",
+        "Shader Setup: crash when no material assigned",
+        "Shader Setup material selection sync",
+        "Implemented proper bidirectional sync:",
+        "Picking a material in Blender\u2019s Material Properties updates the add-on.",
+        "Picking a material in the add-on updates Blender\u2019s active material slot.",
+        "Object Data Texture export reliability (DDS overwrite/selection logic)",
+        "Export now targets the correct root based on current selection/parent chain.",
+        "De-dupes by output filepath so a stale object can\u2019t overwrite a good DDS with a width=0 DDS.",
+        "Adds guards to refuse writing DDS if computed width/height are invalid + adds debug print of which object actually exported.",
+        "Custom Track Setup axis lock behavior",
+        "Stops the generated setup from needing manual Y-axis dragging to re-align with rollers.",
+        "Track Array Tools tutorial link updated to GamerDesigns New Tutorial using this tool in its Alpha Build State."
       ],
       "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.17.10BETA",
       "message": "A New Beta Build Is Available.",
-      "build": 10
+      "build": 63
     },
     "alpha": {
       "version": [
