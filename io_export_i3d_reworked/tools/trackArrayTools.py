@@ -53,7 +53,7 @@ def _choose_collection_name(collection_names):
 
 
 
-def _ensure_track_curve_rig(context, curve_obj, fwd_span, forward_axis, vertical_axis, thickness_axis):
+def _ensure_track_curve_rig(context, curve_obj, fwd_span, forward_axis, vertical_axis, thickness_axis, origin_loc=None):
     """Ensure the template-like armature + Spline IK rig exists and targets the generated curve."""
     arm_name = "3. EXPORT me"
     arm_obj = bpy.data.objects.get(arm_name)
@@ -69,8 +69,11 @@ def _ensure_track_curve_rig(context, curve_obj, fwd_span, forward_axis, vertical
         except:
             context.scene.collection.objects.link(arm_obj)
 
-    # Reset transforms so the rig is anchored at world origin.
-    arm_obj.location = (0.0, 0.0, 0.0)
+    # Reset transforms. By default we anchor at world origin, but the caller can provide
+    # an explicit origin location so the rig lines up with the generated curve + rollers.
+    if origin_loc is None:
+        origin_loc = Vector((0.0, 0.0, 0.0))
+    arm_obj.location = (float(origin_loc.x), float(origin_loc.y), float(origin_loc.z))
     arm_obj.rotation_euler = (0.0, 0.0, 0.0)
     arm_obj.scale = (1.0, 1.0, 1.0)
 
@@ -355,12 +358,15 @@ class I3D_OT_generateTrackCurveFromGuides(bpy.types.Operator):
 
         thickness_value_selected = sum(c[thickness_axis] for c in centers) / float(len(centers))
 
-        # Enforce the on-axis "0 requirements" workflow, but do NOT force world Z to 0.
-        # - If thickness axis is Y (common XZ track plane), we keep the curve on Y=0.
-        # - If thickness axis is Z (common XY track plane), preserve the selected Z so we don't flatten height.
+        # IMPORTANT:
+        # The custom "Generate" tool should NOT force the DRIVE axis to 0 (that makes users drag the
+        # generated setup to line up with their rollers). Instead:
+        #   - keep the DRIVE axis aligned to the selected guides (we offset the curve + rig later)
+        #   - apply the "0 lock" to the axis PERPENDICULAR to the drive direction (the sideways axis)
+        #
+        # Example:
+        #   If the track drive direction is on the Y axis, we lock X to 0 (not Y).
         thickness_value = 0.0
-        if thickness_axis == 2:
-            thickness_value = thickness_value_selected
 
         guides = []
         for o in sel:
@@ -423,14 +429,18 @@ class I3D_OT_generateTrackCurveFromGuides(bpy.types.Operator):
             # If selection is tiny (e.g., 2 wheels), keep a few more points for a usable curve.
             path2d = [(x_left, bottom_y)] + top_chain[1:-1] + [(x_right, bottom_y)]
 
-        # Center the generated path on the world origin *only on the forward axis*.
-        # Do NOT recenter the vertical axis (user may have real wheel height), and do NOT shift world Z.
+        # Center the generated path in LOCAL space so the armature chain stays centered,
+        # but DO NOT "0 lock" the DRIVE axis in world space. We apply the local offset (u_off)
+        # back onto the curve + rig objects so the generated system lines up with the selected rollers.
         u_vals = [p[0] for p in path2d]
-        v_vals = [p[1] for p in path2d]
         u_off = (min(u_vals) + max(u_vals)) * 0.5
-        if forward_axis == 2:
-            u_off = 0.0
         path2d = [(u - u_off, v) for (u, v) in path2d]
+
+        # Object-space origin for the generated curve + rig.
+        # "0 lock" the axis perpendicular to the drive direction (sideways axis), but keep drive offset.
+        origin_loc = Vector((0.0, 0.0, 0.0))
+        origin_loc[forward_axis] = u_off
+        origin_loc[thickness_axis] = 0.0
 
         fwd_span = (max(u_vals) - min(u_vals))
         # Create (or update) the main editable track curve.
@@ -451,8 +461,8 @@ class I3D_OT_generateTrackCurveFromGuides(bpy.types.Operator):
 
         curve_data.dimensions = '3D'
 
-        # Reset object transforms so the curve is anchored at world origin.
-        curve_obj.location = (0.0, 0.0, 0.0)
+        # Anchor the curve at the computed origin location.
+        curve_obj.location = (float(origin_loc.x), float(origin_loc.y), float(origin_loc.z))
         curve_obj.rotation_euler = (0.0, 0.0, 0.0)
         curve_obj.scale = (1.0, 1.0, 1.0)
 
@@ -478,9 +488,9 @@ class I3D_OT_generateTrackCurveFromGuides(bpy.types.Operator):
         context.view_layer.objects.active = curve_obj
 
         # Ensure the template-like armature rig exists and targets this curve.
-        _ensure_track_curve_rig(context, curve_obj, fwd_span, forward_axis, vertical_axis, thickness_axis)
+        _ensure_track_curve_rig(context, curve_obj, fwd_span, forward_axis, vertical_axis, thickness_axis, origin_loc=origin_loc)
 
-        self.report({'INFO'}, f"Generated {curve_obj.name} + rig at world origin from {len(sel)} guides (flat bottom).")
+        self.report({'INFO'}, f"Generated {curve_obj.name} + rig from {len(sel)} guides (flat bottom, drive axis preserved).")
         return {'FINISHED'}
 
 

@@ -173,50 +173,81 @@ class TOOLS_OT_motionPathPopUpActionButton(bpy.types.Operator):
     def __createEmptiesForCurve(self, parent, curveName, amount):
         listOfEmpties = []
 
-        # We avoid bpy.ops.constraint.followpath_path_animate() here.
-        # In Blender 5.0+ that operator is strict about override contexts and
-        # can raise: "ValueError: 1-2 args execution context is supported".
-        # All we need is to evaluate the Follow Path constraint at a specific
-        # offset, bake the resulting transform, then remove the constraint.
+        # IMPORTANT (Blender 5+ / tester crash reports):
+        # Do NOT use bpy.ops.object.empty_add() or bpy.ops.object.constraint_add()
+        # here. Those operators are context-sensitive and will silently CANCEL
+        # when invoked from a non-View3D context (e.g. Properties, Outliner),
+        # which makes it *look* like we "created 50 empties" while actually
+        # creating none.
+        #
+        # Use the data API instead (context-independent): bpy.data.objects.new()
+        # + collection.objects.link() + constraints.new().
         depsgraph = bpy.context.evaluated_depsgraph_get()
         view_layer = bpy.context.view_layer
+        target_curve = bpy.data.objects.get(curveName)
+        if target_curve is None or target_curve.type != 'CURVE':
+            self.report({'WARNING'}, f"Invalid curve: {curveName}")
+            return []
 
-        #prevObj = None
-        for i in range(0,amount):
-            bpy.ops.object.empty_add()
-            emptyObj = bpy.context.active_object
-            listOfEmpties.append(emptyObj)
-            #empties[i] = emptyObj
-            emptyObj.parent = parent
-            bpy.ops.object.constraint_add(type='FOLLOW_PATH')
-            emptyObj.name = "ce_{}_{:03d}".format(parent.name,i)
-            emptyObj.location = (0,0,0)
-            emptyObj.rotation_euler = (0,0,0)
-            emptyObj.scale = (1,1,1)
-            emptyObj.constraints['Follow Path'].target = bpy.data.objects[curveName]
+        # Pick a safe collection to link new empties into.
+        try:
+            target_collection = bpy.context.collection
+        except Exception:
+            target_collection = None
+        if target_collection is None:
+            try:
+                target_collection = view_layer.active_layer_collection.collection
+            except Exception:
+                target_collection = bpy.context.scene.collection
+
+        for i in range(0, amount):
+            emptyObj = bpy.data.objects.new("", None)
+            emptyObj.name = "ce_{}_{:03d}".format(parent.name, i)
             emptyObj.empty_display_size = 0.25
             emptyObj.empty_display_type = 'ARROWS'
-            #TODO: check if animated
 
-            emptyObj.constraints['Follow Path'].use_curve_radius = False
-            emptyObj.constraints['Follow Path'].use_fixed_location = True
-            emptyObj.constraints['Follow Path'].use_curve_follow = True
-            emptyObj.constraints['Follow Path'].forward_axis = 'FORWARD_Y'
-            emptyObj.constraints['Follow Path'].up_axis = 'UP_Z'
+            # Link + parent
+            try:
+                target_collection.objects.link(emptyObj)
+            except Exception:
+                # Fallback: always link to Scene collection
+                bpy.context.scene.collection.objects.link(emptyObj)
+
+            emptyObj.parent = parent
+            try:
+                emptyObj.matrix_parent_inverse = parent.matrix_world.inverted()
+            except Exception:
+                pass
+
+            emptyObj.location = (0, 0, 0)
+            emptyObj.rotation_euler = (0, 0, 0)
+            emptyObj.scale = (1, 1, 1)
+
+            # Follow Path constraint (data API)
+            cns = emptyObj.constraints.new(type='FOLLOW_PATH')
+            cns.target = target_curve
+
+            cns.use_curve_radius = False
+            cns.use_fixed_location = True
+            cns.use_curve_follow = True
+            cns.forward_axis = 'FORWARD_Y'
+            cns.up_axis = 'UP_Z'
+
+            listOfEmpties.append(emptyObj)
 
             # Compute a stable 0..1 offset (include 1.0 on the last element when possible).
             denom = (amount - 1) if amount > 1 else 1
             offset = i / denom
 
             if bpy.context.scene.TOOLS_UIMotionPath.motionTypes == 'MOTION_PATH':
-                emptyObj.constraints['Follow Path'].offset_factor = offset
+                cns.offset_factor = offset
 
                 # Evaluate + bake transform.
                 view_layer.update()
                 eval_obj = emptyObj.evaluated_get(depsgraph)
                 emptyObj.matrix_world = eval_obj.matrix_world.copy()
 
-                emptyObj.constraints.remove(emptyObj.constraints['Follow Path'])
+                emptyObj.constraints.remove(cns)
                 #print("node {} x={} y={} z={}".format(i, emptyObj.rotation_euler[0], emptyObj.rotation_euler[1], emptyObj.rotation_euler[2]))
                 if abs(round(emptyObj.rotation_euler[2], 3)) > 0 or abs(round(emptyObj.rotation_euler[1], 3)) > 0:
                     emptyObj.rotation_euler[0] = -emptyObj.rotation_euler[0]
@@ -234,16 +265,16 @@ class TOOLS_OT_motionPathPopUpActionButton(bpy.types.Operator):
 
             elif bpy.context.scene.TOOLS_UIMotionPath.motionTypes == 'EFFECT':
                 # Same evaluation/bake approach for EFFECT mode.
-                emptyObj.constraints['Follow Path'].offset_factor = offset
+                cns.offset_factor = offset
 
                 view_layer.update()
                 eval_obj = emptyObj.evaluated_get(depsgraph)
                 emptyObj.matrix_world = eval_obj.matrix_world.copy()
 
-                emptyObj.constraints.remove(emptyObj.constraints['Follow Path'])
+                emptyObj.constraints.remove(cns)
 
         if bpy.context.scene.TOOLS_UIMotionPath.motionTypes == 'MOTION_PATH':
-             for i in range(len(listOfEmpties)):
+            for i in range(len(listOfEmpties)):
                 emptyObj = listOfEmpties[i]
                 if (0 == i):
                     # first item
@@ -271,8 +302,44 @@ class TOOLS_OT_motionPathPopUpActionButton(bpy.types.Operator):
                 emptyObj.rotation_euler[1] = 0.0
                 emptyObj.rotation_euler[2] = 0.0
                 emptyObj.keyframe_insert(data_path="rotation_euler", frame=i)
+
+        return listOfEmpties
     def __createByAmount(self, context, amount, curveName):
-        """Creates the given amount of 'empty'-objects on the provided curve (or selected curves)."""
+        """Creates the given amount of 'empty'-objects on the provided curve (or selected curves).
+
+        Returns:
+            int: Number of child empties actually created (excludes the root/pose/row empties).
+        """
+
+        # Context-independent empty creation helper (safe even when invoked from non-View3D UI).
+        def _new_empty(obj_name, parent=None):
+            try:
+                col = bpy.context.collection
+            except Exception:
+                col = None
+            if col is None:
+                try:
+                    col = bpy.context.view_layer.active_layer_collection.collection
+                except Exception:
+                    col = bpy.context.scene.collection
+
+            o = bpy.data.objects.new(obj_name, None)
+            o.empty_display_size = 0.5
+            o.empty_display_type = 'PLAIN_AXES'
+            try:
+                col.objects.link(o)
+            except Exception:
+                bpy.context.scene.collection.objects.link(o)
+            if parent is not None:
+                o.parent = parent
+                try:
+                    o.matrix_parent_inverse = parent.matrix_world.inverted()
+                except Exception:
+                    pass
+            o.location = (0, 0, 0)
+            o.rotation_euler = (0, 0, 0)
+            o.scale = (1, 1, 1)
+            return o
 
         # Prefer curves loaded via "Load Selected".
         curves_to_use = list(I3D_PT_motionPath.selectedCurves) if len(I3D_PT_motionPath.selectedCurves) > 0 else []
@@ -301,7 +368,7 @@ class TOOLS_OT_motionPathPopUpActionButton(bpy.types.Operator):
 
         if not curves_to_use:
             self.report({'WARNING'}, "No curve selected. Use 'Load Selected' or choose a curve in the dropdown.")
-            return False
+            return 0
 
         targetParent = None
         arrayRootObjectName = bpy.context.scene.TOOLS_UIMotionPath.parentName + "_ignore"
@@ -312,12 +379,10 @@ class TOOLS_OT_motionPathPopUpActionButton(bpy.types.Operator):
             targetParent = oldObject.parent
             dcc.deleteHierarchy(oldObject)
 
-        bpy.ops.object.empty_add()
-        parentObj = bpy.context.active_object
+        parentObj = _new_empty(arrayRootObjectName, parent=None)
         if parentObj is None:
             self.report({'WARNING'}, "Failed to create root empty object.")
-            return False
-        parentObj.name = arrayRootObjectName
+            return 0
 
         # set attributes for dds
         self.__ddsExportSettings(parentObj.name, amount, hierarchicalSetup)
@@ -325,42 +390,36 @@ class TOOLS_OT_motionPathPopUpActionButton(bpy.types.Operator):
         parentObj.rotation_euler = (0,0,0)
         parentObj.scale = (1,1,1)
 
+        created_count = 0
+
         if not hierarchicalSetup:
             curveName = curves_to_use[0]
-            self.__createEmptiesForCurve(parentObj, curveName, amount)
+            created_count += len(self.__createEmptiesForCurve(parentObj, curveName, amount))
         else:
-            bpy.ops.object.empty_add()
-            poseNode = bpy.context.active_object
+            poseNode = _new_empty("pose1", parent=parentObj)
             if poseNode is None:
                 self.report({'WARNING'}, "Failed to create pose node empty.")
-                return False
-            poseNode.parent = parentObj
-            poseNode.name = "pose1"
-            poseNode.location = (0,0,0)
-            poseNode.rotation_euler = (0,0,0)
-            poseNode.scale = (1,1,1)
+                return 0
 
             for i, curveName in enumerate(curves_to_use):
-                bpy.ops.object.empty_add()
-                rowParent = bpy.context.active_object
+                rowParent = _new_empty("row%d" % (i + 1), parent=poseNode)
                 if rowParent is None:
                     continue
-                rowParent.parent = poseNode
-                rowParent.name = "row%d" % (i + 1)
-                rowParent.location = (0,0,0)
-                rowParent.rotation_euler = (0,0,0)
-                rowParent.scale = (1,1,1)
 
-                self.__createEmptiesForCurve(rowParent, curveName, amount)
+                created_count += len(self.__createEmptiesForCurve(rowParent, curveName, amount))
 
         if targetParent is not None:
             parentObj.parent = targetParent
             parentObj.matrix_parent_inverse = targetParent.matrix_world.inverted()
 
-        return True
+        return created_count
 
     def __createByDistance(self, context, distance, curveName):
-        """Creates the 'empty'-objects in the given interval on the provided curve."""
+        """Creates the 'empty'-objects in the given interval on the provided curve.
+
+        Returns:
+            int: Number of child empties actually created.
+        """
 
         # Resolve a curve to use for length calculation.
         curves_to_use = list(I3D_PT_motionPath.selectedCurves) if len(I3D_PT_motionPath.selectedCurves) > 0 else []
@@ -377,12 +436,12 @@ class TOOLS_OT_motionPathPopUpActionButton(bpy.types.Operator):
 
         if not curves_to_use:
             self.report({'WARNING'}, "No curve selected. Use 'Load Selected' or choose a curve in the dropdown.")
-            return False
+            return 0
 
         length = dcc.getCurveLength(curves_to_use[0])
         if length <= 0:
             self.report({'WARNING'}, "Selected curve has invalid length.")
-            return False
+            return 0
 
         amount = int(round(length / distance))
         return self.__createByAmount(context, amount, curves_to_use[0])
@@ -404,18 +463,18 @@ class TOOLS_OT_motionPathPopUpActionButton(bpy.types.Operator):
                 if context.scene.TOOLS_UIMotionPath.amount <= 0:
                     self.report({'WARNING'},"Invalid Amount value: {}".format(context.scene.TOOLS_UIMotionPath.amount))
                     return{'CANCELLED'}
-                ok = self.__createByAmount(context, context.scene.TOOLS_UIMotionPath.amount, context.scene.TOOLS_UIMotionPath.nurbs)
-                if not ok:
+                created = self.__createByAmount(context, context.scene.TOOLS_UIMotionPath.amount, context.scene.TOOLS_UIMotionPath.nurbs)
+                if created <= 0:
                     return {'CANCELLED'}
-                self.report({'INFO'}, "Created {} empties.".format(context.scene.TOOLS_UIMotionPath.amount))
+                self.report({'INFO'}, "Created {} empties.".format(created))
             if context.scene.TOOLS_UIMotionPath.creationType == "DISTANCE":
                 if context.scene.TOOLS_UIMotionPath.distance <= 0:
                     self.report({'WARNING'},"Invalid Distance value: {}".format(context.scene.TOOLS_UIMotionPath.distance))
                     return{'CANCELLED'}
-                ok = self.__createByDistance(context, context.scene.TOOLS_UIMotionPath.distance, context.scene.TOOLS_UIMotionPath.nurbs)
-                if not ok:
+                created = self.__createByDistance(context, context.scene.TOOLS_UIMotionPath.distance, context.scene.TOOLS_UIMotionPath.nurbs)
+                if created <= 0:
                     return {'CANCELLED'}
-                self.report({'INFO'}, "Created empties in {} intervals.".format(round(context.scene.TOOLS_UIMotionPath.distance,3)))
+                self.report({'INFO'}, "Created {} empties at ~{}m intervals.".format(created, round(context.scene.TOOLS_UIMotionPath.distance,3)))
             # avoid blender crash when undoing immediate after creating objects
             bpy.ops.ed.undo_push()
             return {'FINISHED'}

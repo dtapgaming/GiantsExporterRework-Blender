@@ -1,28 +1,41 @@
 CHANGE LOGS
 
 
+V 10.0.17.63 (14.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
+- Unsaved .blend safety for “Export Object Data Texture” If the blend isn’t saved, it now prompts the user to choose where to save curveArray.dds (instead of writing to a dangerous/odd default).
+- Vehicle Light Tool validation + selection
+  - Validation now updates mesh/UV data so Object Mode doesn’t miss UV-out-of-tile errors.
+- Shader Setup: crash when no material assigned
+- Shader Setup material selection sync
+- Implemented proper bidirectional sync:
+  - Picking a material in Blender’s Material Properties updates the add-on.
+  - Picking a material in the add-on updates Blender’s active material slot.
+- Object Data Texture export reliability (DDS overwrite/selection logic)
+  - Export now targets the correct root based on current selection/parent chain.
+  - De-dupes by output filepath so a stale object can’t overwrite a good DDS with a width=0 DDS.
+  - Adds guards to refuse writing DDS if computed width/height are invalid + adds debug print of which object actually exported.
+- Custom Track Setup axis lock behavior
+  - Stops the generated setup from needing manual Y-axis dragging to re-align with rollers.
+- Track Array Tools tutorial link updated to GamerDesigns New Tutorial using this tool in its Alpha Build State.
+
 V 10.0.17.61 (14.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
 - Added a new Vehicle Light Setup Tool (Static Light workflow):
   - In-Blender light creation, generates UV maps, paints vertex colors, generates a LightIntensity map (emission), and can create multifunction Light Types (must set your materials and assign the proper faces).
   - In-Blender validation to catch common setup issues before export / Giants Editor.
   - Supports testing & validation of manually built lights (requires UV maps + shader/staticLight minimum to be setup for manual built light detection to work).
-
-(looking for YouTube Tutorial Maker I'll do one eventually if no volunteers but it needs to cover all types and detection of manual built lights.)
-
-- Fixed the "Object Data from Curve" tool to work with FS25 things and in newer Blender Versions.
 - Track Array Tools:
   - Import Basic Oval Track Setup System (template import).
   - Generate Custom Track Setup System From Guides:
     - Generates the template-style curve and armature: "2. EDIT me" + "3. EXPORT me".
     - Builds the 100-bone chain (Bone, Bone.002 ... Bone.100) and applies the matching Spline IK constraint.
     - Curve generation is centered on the world origin axis without forcing the Z (height) axis.
-  - Credits: "Collab by DtapGaming and RMC GamerDesigns".
+  - Credits: "Created by DtapGaming and RMC Gamer Designs".
 - Shader Setup / Simulator:
   - Material Type simulation behavior improved so visuals ignore UV map scaling correctly and act like Giants treats them.
 - Export reliability:
   - Sanitizes '&' in object/material names during export to prevent broken .i3d files.
 - Tools stability (Blender 5):
-  - Fixed Motion Path + Vertex Color + Spline tool panels no longer create their own addon panels
+  - Fixed Motion Path and Vertex Color panels failing to draw due to missing Scene properties / operators.
 - Updater quality-of-life:
   - "Skip this version" is now respected after using "Refresh Addon After Update".
   - "Undo Skip Version" restored in the bottom mini menu.

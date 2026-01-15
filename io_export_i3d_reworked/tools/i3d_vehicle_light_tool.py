@@ -1883,10 +1883,13 @@ def _validate_light_setup(context, obj: bpy.types.Object, slot_index: int, mat: 
 
     mesh = obj.data
 
-    # Prevent Edit Mode mesh data desync crashes (entering Edit Mode while tests run)
+    # Keep mesh data in sync for validation (UV edits can live only in the edit-mesh until flushed)
     try:
-        if obj.mode == "EDIT":
-            obj.update_from_editmode()
+        obj.update_from_editmode()
+    except Exception:
+        pass
+    try:
+        mesh.update()
     except Exception:
         pass
 
@@ -2360,12 +2363,7 @@ class I3D_CL_OT_LightSelectOffendingFaces(bpy.types.Operator):
         else:
             self.report({"WARNING"}, f"Selected {bad} offending faces in active material slot.")
 
-        # Restore mode if needed (keep edit mode is useful for user)
-        if prev_mode != "EDIT":
-            try:
-                bpy.ops.object.mode_set(mode=prev_mode)
-            except Exception:
-                pass
+        # Keep user in Edit Mode so the selection is visible.
 
         return {"FINISHED"}
 

@@ -467,7 +467,11 @@ def i3d_normalize_customshader_value(value):
 
 @persistent
 def i3d_selected_material_sync_handler(scene, depsgraph):
-    """Keep Selected Material dropdown synced to the newly selected mesh (first material slot)."""
+    """Keep Selected Material dropdown synced to the active object's *active* material slot.
+
+    This makes the Shader Setup tab follow the Material Properties panel selection when
+    a mesh has multiple materials.
+    """
     global _I3D_LAST_ACTIVE_OBJECT_NAME, _I3D_LAST_ACTIVE_MATERIAL_NAME
     global g_disableSelectedMaterialEnumUpdateCallback
 
@@ -486,14 +490,35 @@ def i3d_selected_material_sync_handler(scene, depsgraph):
     obj_name = activeObject.name if activeObject is not None else ''
     activeMat = None
     if activeObject is not None:
+        # Prefer the *active* material slot (changes when user clicks another slot in Properties).
         try:
-            if getattr(activeObject, 'material_slots', None) and len(activeObject.material_slots) > 0:
-                activeMat = activeObject.material_slots[0].material
+            activeMat = getattr(activeObject, 'active_material', None)
         except Exception:
             activeMat = None
+
+        # If the active slot has no material, try resolving via index.
         if activeMat is None:
             try:
-                activeMat = getattr(activeObject, 'active_material', None)
+                slots = getattr(activeObject, 'material_slots', None)
+                if slots and len(slots) > 0:
+                    idx = int(getattr(activeObject, 'active_material_index', 0))
+                    if idx < 0:
+                        idx = 0
+                    if idx >= len(slots):
+                        idx = len(slots) - 1
+                    activeMat = slots[idx].material
+            except Exception:
+                activeMat = None
+
+        # Final fallback: first non-empty slot.
+        if activeMat is None:
+            try:
+                slots = getattr(activeObject, 'material_slots', None)
+                if slots:
+                    for ms in slots:
+                        if ms is not None and ms.material is not None:
+                            activeMat = ms.material
+                            break
             except Exception:
                 activeMat = None
 
@@ -788,9 +813,43 @@ def selectedMaterialEnumUpdate(self, context):
     if g_disableSelectedMaterialEnumUpdateCallback:
         return
 
-    # Select all objects which have the chosen material assigned.
-    mat = self.i3D_selectedMaterialEnum
-    [obj.select_set(mat in [materialSlot.material.name for materialSlot in obj.material_slots if materialSlot.material != None]) for obj in bpy.data.objects]
+    # Keep the Shader Setup "Select Material" dropdown in sync with Blender's active material slot.
+    # If the user picks a material from the dropdown, switch the *active material slot* on the active object.
+    # (This also means picking a different slot in Blender's Material Properties panel will be reflected back
+    # into this dropdown via the timer/modal sync code.)
+    mat_name = getattr(self, 'i3D_selectedMaterialEnum', 'None')
+    if mat_name in (None, '', 'None'):
+        return
+
+    active_obj = getattr(context, 'active_object', None)
+    if active_obj is None or not isinstance(active_obj, bpy.types.Object):
+        return
+
+    try:
+        slots = getattr(active_obj, 'material_slots', None)
+    except Exception:
+        slots = None
+    if not slots:
+        return
+
+    # Find the slot index matching the chosen material name.
+    target_idx = None
+    for i, ms in enumerate(slots):
+        try:
+            if ms and ms.material and ms.material.name == mat_name:
+                target_idx = i
+                break
+        except Exception:
+            continue
+
+    if target_idx is None:
+        return
+
+    # Switch the active material slot.
+    try:
+        active_obj.active_material_index = target_idx
+    except Exception:
+        pass
 
 def templatedParameterEnabled(self, context, parameterTemplateId, subTemplateId, paramName):
     # Reset the template for this parameter if the checkbox is unset.
@@ -947,6 +1006,10 @@ def parameterTemplateSearchCallback(enums):
     return lambda self, context, searchText: ["None"] + enums
 
 def updateDynamicUIClassesForShaderParameters(shaderData, variation_groups, shaderValues = {"parameters": {},"textures": {}, "parameterTemplates": {}}, materialObj = {}):
+    # materialObj can be None if the active object has no material assigned
+    if materialObj is None:
+        materialObj = {}
+
     # Custom Parameters
     dynamicGUIDict = {}
     for paramName, value in shaderData["parameters"].items():
@@ -1033,7 +1096,7 @@ def updateDynamicUIClassesForShaderParameters(shaderData, variation_groups, shad
 
             # TODO(jdellsperger): Load selected parameter templates into shaderValues variable instead of passing materialObj
             templatedParameterTemplateMenuName = "templatedParameterTemplateMenu_" + parameterTemplateId + "_" + paramName
-            if templatedParameterTemplateMenuName in materialObj:
+            if materialObj is not None and templatedParameterTemplateMenuName in materialObj:
                 templatedParameterTemplate = materialObj[templatedParameterTemplateMenuName]
                 try:
                     value = parameterTemplate["subtemplates"][parameterTemplate["rootSubTemplateId"]]["templates"][templatedParameterTemplate][paramName]
@@ -1153,7 +1216,7 @@ def updateDynamicUIClassesForShaderParameters(shaderData, variation_groups, shad
                 paramName+"_1": bpy.props.FloatProperty(default = valueList[1], precision = dcc.FLOAT_PRECISION, update = templatedParameterUpdateCallback(parameterTemplateId, rootSubTemplateId, paramName)),
                 paramName+"_2": bpy.props.FloatProperty(default = valueList[2], precision = dcc.FLOAT_PRECISION, update = templatedParameterUpdateCallback(parameterTemplateId, rootSubTemplateId, paramName)),
                 paramName+"_3": bpy.props.FloatProperty(default = valueList[3], precision = dcc.FLOAT_PRECISION, update = templatedParameterUpdateCallback(parameterTemplateId, rootSubTemplateId, paramName)),
-                "templatedParameterTemplateMenu_" + parameterTemplateId + "_" + paramName: bpy.props.StringProperty(name = subTemplate["name"], search = parameterTemplateSearchCallback(rootTemplates), update = templateForParameterSelectedCallback(parameterTemplateId, rootSubTemplateId, paramName), default = materialObj["templatedParameterTemplateMenu_" + parameterTemplateId + "_" + paramName] if "templatedParameterTemplateMenu_" + parameterTemplateId + "_" + paramName in materialObj else "None")
+                "templatedParameterTemplateMenu_" + parameterTemplateId + "_" + paramName: bpy.props.StringProperty(name = subTemplate["name"], search = parameterTemplateSearchCallback(rootTemplates), update = templateForParameterSelectedCallback(parameterTemplateId, rootSubTemplateId, paramName), default = (materialObj["templatedParameterTemplateMenu_" + parameterTemplateId + "_" + paramName] if (materialObj is not None and ("templatedParameterTemplateMenu_" + parameterTemplateId + "_" + paramName) in materialObj) else "None"))
             })
 
         for textureName, texture in textureValues.items():
@@ -3017,7 +3080,7 @@ class I3D_PT_PanelExport( bpy.types.Panel ):
 
                 row = track_box.row()
                 op = row.operator("wm.url_open", text="Open Tutorial (YouTube)", icon='URL')
-                op.url = "https://www.youtube.com/watch?v=J7RJttB5a-E"
+                op.url = "https://youtu.be/CZ7a_hW3T1E"
             #-----------------------------------------
             # Modders Edge Toolset (Tools + Cleanup)
             # Credit: GamerDesigns (MIT License)
@@ -3729,16 +3792,41 @@ class I3D_OT_modal_active_object(bpy.types.Operator):
                                 dcc.I3DSaveObjectAttributes()
 
         # Update selected material
+        # IMPORTANT: follow Blender's *active material slot* (NOT slot 0).
+        # This keeps the Shader Setup dropdown in sync when the user clicks a different
+        # material in Blender's Material Properties panel.
         activeMat = None
         if activeObject is not None:
-            # Prefer the first material slot (requested behavior), fallback to active_material
             try:
-                if getattr(activeObject, "material_slots", None) and len(activeObject.material_slots) > 0:
-                    activeMat = activeObject.material_slots[0].material
+                activeMat = getattr(activeObject, "active_material", None)
             except Exception:
                 activeMat = None
+
+            # Fallback: resolve from active_material_index.
             if activeMat is None:
-                activeMat = getattr(activeObject, "active_material", None)
+                try:
+                    slots = getattr(activeObject, "material_slots", None)
+                    if slots and len(slots) > 0:
+                        idx = int(getattr(activeObject, "active_material_index", 0))
+                        if idx < 0:
+                            idx = 0
+                        if idx >= len(slots):
+                            idx = len(slots) - 1
+                        activeMat = slots[idx].material
+                except Exception:
+                    activeMat = None
+
+            # Final fallback: first non-empty material slot.
+            if activeMat is None:
+                try:
+                    slots = getattr(activeObject, "material_slots", None)
+                    if slots:
+                        for ms in slots:
+                            if ms and ms.material:
+                                activeMat = ms.material
+                                break
+                except Exception:
+                    activeMat = None
 
         new_mat = activeMat.name if activeMat is not None else "None"
 
@@ -4023,6 +4111,28 @@ class I3D_OT_PanelAddShader_ButtonLoad( bpy.types.Operator):
                 activeObject = context.active_object
                 if activeObject is not None and isinstance(activeObject, bpy.types.Object):
                     materialObj = activeObject.active_material
+
+                # If the active mesh has no material assigned, create one so the shader UI can load safely.
+                if materialObj is None and activeObject is not None and getattr(activeObject, 'type', None) == 'MESH':
+                    try:
+                        mat_name = "I3D_Reworked_Material"
+                        mat = bpy.data.materials.get(mat_name)
+                        if mat is None:
+                            mat = bpy.data.materials.new(name=mat_name)
+                            mat.use_nodes = True
+                        # Ensure the mesh has at least one material slot
+                        if len(activeObject.data.materials) == 0:
+                            activeObject.data.materials.append(mat)
+                        else:
+                            activeObject.data.materials[0] = mat
+                        activeObject.active_material = mat
+                        materialObj = mat
+                        try:
+                            self.report({'INFO'}, "Active object had no material; created and assigned 'I3D_Reworked_Material'.")
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
             except Exception:
                 pass
 
@@ -4568,6 +4678,82 @@ class I3D_OT_PanelOpenIESFilebrowser(bpy.types.Operator, bpy_extras.io_utils.Imp
         context.scene.I3D_UIexportSettings.i3D_iesProfileFile = path
         return {'FINISHED'}
 
+
+class I3D_OT_ExportObjectDataTexture_UnsavedPrompt(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
+    """When the .blend isn't saved yet, pick a safe destination for the Object Data DDS export."""
+
+    bl_idname = "i3d.export_object_data_texture_unsaved"
+    bl_label = "Save Object Data Texture"
+    bl_description = "Choose where the generated *.dds (e.g. curveArray.dds) should be saved when the .blend is not saved yet."
+
+    filename_ext = ".dds"
+    filter_glob: bpy.props.StringProperty(default="*.dds", options={'HIDDEN'})
+    check_existing: bpy.props.BoolProperty(default=True, options={'HIDDEN'})
+
+    def invoke(self, context, event):
+        # Default name: first exported object's filename (if available) or curveArray.dds
+        default_name = "curveArray.dds"
+        try:
+            for obj in bpy.data.objects:
+                if "i3D_objectDataFilePath" in obj and str(obj["i3D_objectDataFilePath"]).strip():
+                    default_name = os.path.basename(str(obj["i3D_objectDataFilePath"]))
+                    break
+        except Exception:
+            pass
+
+        if not default_name.lower().endswith(".dds"):
+            default_name += ".dds"
+
+        # Start directory: previously chosen folder this session -> temp dir -> home
+        start_dir = bpy.app.tempdir or os.path.expanduser("~")
+        try:
+            prev_dir = context.scene.get("i3d_unsaved_dds_export_dir", "")
+            if prev_dir and os.path.isdir(prev_dir):
+                start_dir = prev_dir
+        except Exception:
+            pass
+
+        self.filepath = os.path.join(start_dir, default_name)
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        export_dir = os.path.dirname(self.filepath)
+        if not export_dir:
+            self.report({'ERROR'}, "No export folder selected.")
+            return {'CANCELLED'}
+
+        # Store chosen folder so the exporter can resolve relative filenames safely.
+        context.scene["i3d_unsaved_dds_export_dir"] = export_dir
+
+        # If there's exactly one export object, also honor the chosen filename.
+        try:
+            export_objs = [
+                o for o in bpy.data.objects
+                if ("i3D_objectDataFilePath" in o and str(o["i3D_objectDataFilePath"]).strip())
+            ]
+            if len(export_objs) == 1:
+                export_objs[0]["i3D_objectDataFilePath"] = os.path.basename(self.filepath)
+        except Exception:
+            pass
+
+        # Export in Object Mode, then restore the previous mode.
+        try:
+            current_mode = bpy.context.object.mode
+            bpy.ops.object.mode_set(mode='OBJECT')
+        except Exception:
+            current_mode = 'OBJECT'
+
+        i3d_export.I3DExportDDS()
+
+        try:
+            bpy.ops.object.mode_set(mode=current_mode)
+        except Exception:
+            pass
+
+        return {'FINISHED'}
+
+
 class I3D_OT_PanelTools_Button( bpy.types.Operator ):
     """ Multi purpose GUI Button element for Tools tab"""
 
@@ -4586,7 +4772,12 @@ class I3D_OT_PanelTools_Button( bpy.types.Operator ):
             current_mode = 'OBJECT'
 
         if   1 == self.state:  #export dds
-            i3d_export.I3DExportDDS()
+            # If the user hasn't saved the .blend yet, avoid exporting to the drive root (e.g. \\curveArray.dds).
+            # Prompt for a destination folder instead.
+            if not dccBlender.isFileSaved():
+                bpy.ops.i3d.export_object_data_texture_unsaved('INVOKE_DEFAULT')
+            else:
+                i3d_export.I3DExportDDS()
 
         try:
             bpy.ops.object.mode_set ( mode = current_mode )
@@ -5377,6 +5568,7 @@ classes = (
         I3D_OT_PanelOpenI3DFilebrowser,
         I3D_OT_PanelOpenDDSFilebrowser,
         I3D_OT_PanelOpenIESFilebrowser,
+        I3D_OT_ExportObjectDataTexture_UnsavedPrompt,
         I3D_OT_PanelTools_Button,
         I3D_OT_PanelMaterial_OpenMaterialTemplatesWindowButton,
         I3D_OT_PanelMaterial_UseMaterialNameAsSlotNameButton,

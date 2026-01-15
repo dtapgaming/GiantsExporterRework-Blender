@@ -66,13 +66,100 @@ def exportObjectDataTexture():
     processScene()
 
 def processScene():
-    m_shapeArrays = []
-    for m_obj in bpy.data.objects:
-        if ( isExported(m_obj) ):
-            m_shapeArrays.append(shapeArray(m_obj))
-    # =================================
-    for m_shape in m_shapeArrays:
-        m_shape.export()
+    """Export object data textures (.dds) for tagged objects.
+
+    Blender 5+ note:
+    - Avoid iterating bpy.data.objects (includes orphan/unlinked objects).
+    - Prefer exporting only the relevant root based on the current active selection,
+      and de-duplicate exports by file path so a stale object cannot overwrite
+      a correct DDS later in the loop.
+    """
+
+    def _iter_scene_objects():
+        try:
+            return list(bpy.context.view_layer.objects)
+        except Exception:
+            try:
+                return list(bpy.context.scene.objects)
+            except Exception:
+                return list(bpy.data.objects)
+
+    def _find_export_root_from(obj):
+        o = obj
+        while o is not None:
+            if isExported(o):
+                return o
+            o = o.parent
+        return None
+
+    # Prefer exporting the root connected to the active selection (prevents accidental overwrites).
+    export_objs = []
+    try:
+        active = bpy.context.active_object
+    except Exception:
+        active = None
+
+    root = _find_export_root_from(active) if active else None
+    if root is not None:
+        export_objs = [root]
+    else:
+        export_objs = [o for o in _iter_scene_objects() if isExported(o)]
+
+    if not export_objs:
+        return
+
+    # De-duplicate by resolved file path (last-writer wins is dangerous).
+    by_path = {}
+    for o in export_objs:
+        try:
+            fp = getFilePath(getAttributeValue(o, "i3D_objectDataFilePath"))
+        except Exception:
+            fp = ""
+        if not fp:
+            continue
+        by_path.setdefault(fp, []).append(o)
+
+    chosen = []
+    for fp, group in by_path.items():
+        if len(group) == 1:
+            chosen.append(group[0])
+            continue
+
+        # Choose the best candidate (most descendants usually means the real array root).
+        def _desc_count(obj):
+            try:
+                # Blender exposes children_recursive on Objects
+                cr = getattr(obj, "children_recursive", None)
+                if cr is not None:
+                    return len(cr)
+            except Exception:
+                pass
+            # Fallback recursion
+            seen = set()
+            stack = list(getattr(obj, "children", []))
+            while stack:
+                c = stack.pop()
+                if c in seen:
+                    continue
+                seen.add(c)
+                stack.extend(list(getattr(c, "children", [])))
+            return len(seen)
+
+        best = max(group, key=_desc_count)
+        try:
+            dccBlender.UIAddMessage(
+                "WARNING: Multiple objects export to the same DDS '{}': {}. Using '{}'".format(
+                    fp, ", ".join([g.name for g in group]), best.name
+                )
+            )
+        except Exception:
+            pass
+        chosen.append(best)
+
+    # Export
+    for obj in chosen:
+        shapeArray(obj).export()
+
 
 class shapeArray(object):
     def __init__(self,m_obj):
@@ -99,6 +186,13 @@ class shapeArray(object):
         self.m_exportScale      = getAttributeValue(self.m_obj,"i3D_objectDataExportScale",self.m_exportScale)
 
     def export(self):
+        try:
+            dccBlender.UIAddMessage("DDS Export: obj='{}' file='{}' hierarchical={} children={}".format(
+                self.m_obj.name, self.m_filepath, bool(self.m_hierarchical), len(self.m_obj.children)
+            ))
+        except Exception:
+            pass
+
         #dccBlender.UIAddMessage("export: z:{} y:{} x:{}".format(self.m_z,self.m_y,self.m_x))
         #print(" ")
         if (self.m_hierarchical):
@@ -113,6 +207,16 @@ class shapeArray(object):
         if not self.m_isValid:
             dccBlender.UIAddMessage("Export Failed")
             return False
+        # Hard-fail on invalid dimensions (prevents writing a width=0 DDS header).
+        if self.m_x <= 0 or self.m_y <= 0:
+            self.m_isValid = False
+            dccBlender.UIAddMessage("Export Failed: '{}' invalid DDS dimensions x={} y={}".format(self.m_obj.name, self.m_x, self.m_y))
+            return False
+        if not self.m_poseData:
+            self.m_isValid = False
+            dccBlender.UIAddMessage("Export Failed: '{}' has no pose data".format(self.m_obj.name))
+            return False
+
         m_dataList = []
         m_arrayTmp = []
         for z in range(len(self.m_poseData)):
@@ -155,6 +259,12 @@ class shapeArray(object):
     def shapeArrayGetFlat(self):
         #dccBlender.UIAddMessage("shapeArrayGetFlat: 1")
         self.m_x = len(self.m_obj.children)
+        if self.m_x <= 0:
+            self.m_isValid = False
+            dccBlender.UIAddMessage(
+                "Export Failed: '{}' has no children. Run 'Object Data from Curve' first (or ensure the curveArray root is not in a hidden/disabled collection).".format(self.m_obj.name)
+            )
+            return
         #dccBlender.UIAddMessage("shapeArrayGetFlat: len({})".format(len(self.m_obj.children)))
         m_arrayX = []
         m_arrayY = []
@@ -338,6 +448,50 @@ def isExported( m_obj ):
     return False
 
 def getFilePath(m_str):
-    path = bpy.path.ensure_ext( os.path.splitext(bpy.data.filepath)[0].rsplit("\\",1)[0] +"\\"+ m_str, ".dds" )
-    return path
+    """Resolve the output path for the object data DDS.
 
+    Behavior:
+    - If m_str is an absolute path (or a Blender // relative path), use it directly.
+    - If the .blend is saved, resolve relative paths next to the .blend file (legacy behavior).
+    - If the .blend is NOT saved, resolve relative paths into a user-chosen folder (stored in the Scene),
+      falling back to Blender's temp dir (or the user's home) to avoid writing to the drive root.
+    """
+    if not m_str:
+        return ""
+
+    # Normalize to a plain string (custom props can be non-str types)
+    m_str = str(m_str)
+
+    # Blender's special relative-path prefix (//...)
+    if m_str.startswith("//"):
+        try:
+            abs_path = bpy.path.abspath(m_str)
+            return bpy.path.ensure_ext(abs_path, ".dds")
+        except Exception:
+            pass
+
+    # Normalize separators for os.path checks
+    m_norm = m_str.replace("\\", os.sep).replace("/", os.sep)
+
+    # Absolute path? (handles POSIX, UNC, and drive-letter paths)
+    try:
+        is_abs = os.path.isabs(m_norm) or bool(re.match(r"^[A-Za-z]:[\/]", m_str))
+    except Exception:
+        is_abs = False
+    if is_abs:
+        return bpy.path.ensure_ext(m_norm, ".dds")
+
+    # Relative path: resolve against blend folder (saved) or user-selected folder (unsaved)
+    if dccBlender.isFileSaved():
+        base_dir = os.path.dirname(bpy.data.filepath)
+    else:
+        base_dir = ""
+        try:
+            base_dir = bpy.context.scene.get("i3d_unsaved_dds_export_dir", "")
+        except Exception:
+            base_dir = ""
+        if not base_dir:
+            base_dir = bpy.app.tempdir or os.path.expanduser("~")
+
+    path = os.path.join(base_dir, m_norm)
+    return bpy.path.ensure_ext(path, ".dds")
