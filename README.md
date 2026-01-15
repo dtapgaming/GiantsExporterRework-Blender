@@ -134,7 +134,7 @@ V 10.0.17.61 (14.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
   - "Skip this version" is now respected after using "Refresh Addon After Update".
   - "Undo Skip Version" restored in the bottom mini menu.
 
-V 10.0.17.13 (08.01.2026) Build: ALPHA TESTING (opt in in user Preferences)
+V 10.0.17.13 (08.01.2026) Build: BETA TESTING (opt in in user Preferences)
 ------------------
 - My Color Library JSON sharing improvements for Decals:
   - Export now supports an optional ZIP bundle: JSON + copies of all decal images used by your saved library.
