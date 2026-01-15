@@ -160,7 +160,7 @@ class deltatovcolor(bpy.types.Operator):
 # Mesh Data Panel
 # -------------------------------------------------------------------------
 
-class ge_deltavertexcolors_PT_scenepanel(bpy.types.Panel):
+class I3D_DELTAVERTEXCOLORS_PT_scenepanel(bpy.types.Panel):
     bl_label = "Bake Position Delta to Vertex Color"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -193,7 +193,7 @@ class ge_deltavertexcolors_PT_scenepanel(bpy.types.Panel):
 
 classes = (
     deltatovcolor,
-    ge_deltavertexcolors_PT_scenepanel,
+    I3D_DELTAVERTEXCOLORS_PT_scenepanel,
 )
 
 

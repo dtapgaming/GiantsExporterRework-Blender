@@ -104,6 +104,8 @@ def _i3d_prefs_save_from_prefs(prefs):
             "game_install_path": getattr(prefs, "game_install_path", ""),
             "enable_update_checks": bool(getattr(prefs, "enable_update_checks", True)),
             "update_channel": getattr(prefs, "update_channel", "STABLE"),
+            "update_installed_channel": getattr(prefs, "update_installed_channel", "STABLE"),
+            "update_installed_by_updater": bool(getattr(prefs, "update_installed_by_updater", False)),
         }
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -136,6 +138,10 @@ def _i3d_prefs_restore_into_prefs(prefs):
             prefs.enable_update_checks = bool(data.get("enable_update_checks"))
         if data.get("update_channel") in ("STABLE", "BETA", "ALPHA"):
             prefs.update_channel = data.get("update_channel")
+        if data.get("update_installed_channel") in ("STABLE", "BETA", "ALPHA"):
+            prefs.update_installed_channel = data.get("update_installed_channel")
+        if "update_installed_by_updater" in data:
+            prefs.update_installed_by_updater = bool(data.get("update_installed_by_updater"))
     except Exception:
         pass
 
@@ -241,6 +247,17 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         options={'HIDDEN'},
     )
 
+
+    # Internal: True if this add-on build was installed by the updater.
+    # Manual installs (drop-in zips) will show as Custom/Manual in the mini menu until an updater install occurs.
+    update_installed_by_updater: bpy.props.BoolProperty(
+        name="",
+        description="Internal flag used for the mini menu. True if this install was placed by the updater.",
+        default=False,
+        options={'HIDDEN'},
+        update=_i3d_prefs_on_update,
+    )
+
     update_manifest_url: bpy.props.StringProperty(
         name="Update Manifest URL",
         description="URL to a JSON file describing the latest versions for each channel",
@@ -294,6 +311,31 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         description="Internal: skip update prompts for this alpha build",
         default=0,
         options={'HIDDEN'},
+    )
+
+
+    update_last_action: bpy.props.StringProperty(
+    name="Update Last Action (Internal)",
+    description="Internal: short summary of the last update action shown in the statusbar menu",
+    default="",
+    options={'HIDDEN'},
+    )
+
+    update_last_action_ts: bpy.props.IntProperty(
+    name="Update Last Action Timestamp (Internal)",
+    description="Internal: unix timestamp for update_last_action",
+    default=0,
+    options={'HIDDEN'},
+    )
+
+
+    # --------------------------------------------------------------
+    # Color Library UI
+    # --------------------------------------------------------------
+    colorlib_name_ratio: bpy.props.FloatProperty(
+        name="Color List: Name Column",
+        description="Width of the name column in the Color Library lists (applies to My, GIANTS, and Popular tabs)",
+        default=0.50, min=0.40, max=0.90,
     )
 
     def draw(self, context):
@@ -361,12 +403,45 @@ class I3DExporterAddonPreferences(bpy.types.AddonPreferences):
         except Exception:
             pass
 
-
-
-
+        # --------------------------------------------------------------
+        # Color Library UI
+        # --------------------------------------------------------------
+        layout.separator()
+        layout.label(text="Color Library UI")
+        layout.prop(self, "colorlib_name_ratio", slider=True)
 def register():
-    bpy.utils.register_class(I3D_OT_EnableOnlineAccess)
-    bpy.utils.register_class(I3DExporterAddonPreferences)
+    # Best-effort cleanup so reinstall/reload doesn't require restarting Blender.
+    try:
+        _existing = getattr(bpy.types, "I3D_OT_EnableOnlineAccess", None)
+        if _existing is not None:
+            try:
+                bpy.utils.unregister_class(_existing)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    try:
+        _existing = getattr(bpy.types, "I3DExporterAddonPreferences", None)
+        if _existing is not None:
+            try:
+                bpy.utils.unregister_class(_existing)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    try:
+        bpy.utils.register_class(I3D_OT_EnableOnlineAccess)
+    except RuntimeError as e:
+        if "already registered" not in str(e):
+            raise
+
+    try:
+        bpy.utils.register_class(I3DExporterAddonPreferences)
+    except RuntimeError as e:
+        if "already registered" not in str(e):
+            raise
 
     # Restore persisted prefs (survive uninstall/reinstall rollbacks)
     try:
@@ -386,5 +461,12 @@ def unregister():
     except Exception:
         pass
 
-    bpy.utils.unregister_class(I3DExporterAddonPreferences)
-    bpy.utils.unregister_class(I3D_OT_EnableOnlineAccess)
+    try:
+        bpy.utils.unregister_class(I3DExporterAddonPreferences)
+    except RuntimeError:
+        pass
+
+    try:
+        bpy.utils.unregister_class(I3D_OT_EnableOnlineAccess)
+    except RuntimeError:
+        pass

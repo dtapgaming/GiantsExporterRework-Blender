@@ -566,6 +566,30 @@ def _get_addon_prefs():
     return getattr(addon, "preferences", None)
 
 
+def _set_last_update_action(prefs, message: str):
+    """Store a short, user-facing summary of the last update action (persistent)."""
+    try:
+        if prefs is None:
+            return
+        prefs.update_last_action = str(message or "")
+        try:
+            prefs.update_last_action_ts = int(time.time())
+        except Exception:
+            prefs.update_last_action_ts = 0
+    except Exception:
+        pass
+
+
+def set_last_update_action(message: str):
+    """Public helper to store last update action summary into add-on preferences."""
+    try:
+        prefs = _get_addon_prefs()
+        _set_last_update_action(prefs, message)
+        return True
+    except Exception:
+        return False
+
+
 def _online_access_allowed():
     # Blender 4.2+ provides bpy.app.online_access (read-only).
     # If missing, assume allowed (older builds).
@@ -772,6 +796,7 @@ def _format_version_build(v, b):
 class I3D_OT_UpdateCheckInfoDialog(bpy.types.Operator):
     bl_idname = "i3d.update_check_info_dialog"
     bl_label = "Update Check"
+    bl_description = "Update Check."
     bl_options = {'INTERNAL'}
 
     title: bpy.props.StringProperty(default="Update Check")
@@ -794,6 +819,7 @@ class I3D_OT_UpdateCheckInfoDialog(bpy.types.Operator):
 class I3D_OT_OpenURL(bpy.types.Operator):
     bl_idname = "i3d.open_url"
     bl_label = "Open URL"
+    bl_description = "Open URL: opens the related window or resource."
     bl_options = {'INTERNAL'}
 
     url: bpy.props.StringProperty(default="")
@@ -810,6 +836,7 @@ class I3D_OT_OpenURL(bpy.types.Operator):
 class I3D_OT_CheckForUpdates(bpy.types.Operator):
     bl_idname = "i3d.check_for_updates"
     bl_label = "Check for Updates"
+    bl_description = "Check for Updates."
     bl_options = {'INTERNAL'}
 
     def execute(self, context):
@@ -827,6 +854,7 @@ class I3D_OT_CheckForUpdates(bpy.types.Operator):
 class I3D_OT_UpdateCheckProgress(bpy.types.Operator):
     bl_idname = "i3d.update_check_progress"
     bl_label = "Update Check Progress"
+    bl_description = "Update Check Progress."
     bl_options = {'INTERNAL'}
 
     _timer = None
@@ -876,6 +904,7 @@ class I3D_OT_UpdateCheckProgress(bpy.types.Operator):
 class I3D_OT_UpdateAvailableDialog(bpy.types.Operator):
     bl_idname = "i3d.update_available_dialog"
     bl_label = "Update Available"
+    bl_description = "Update Available."
     bl_options = {'INTERNAL'}
 
     _timer = None
@@ -1059,12 +1088,12 @@ class I3D_OT_UpdateAvailableDialog(bpy.types.Operator):
         _I3D_UPDATE_DIALOG_ACTIVE = False
 
         self._remove_timer(context)
-        return {'CANCELLED'}
 
 
 class I3D_OT_SkipUpdateVersion(bpy.types.Operator):
     bl_idname = "i3d.skip_update_version"
     bl_label = "Skip Update Version"
+    bl_description = "Skip Update Version."
     bl_options = {'INTERNAL'}
 
     version_str: bpy.props.StringProperty(default="")
@@ -1092,6 +1121,11 @@ class I3D_OT_SkipUpdateVersion(bpy.types.Operator):
 
         # Provide visible feedback in Blender's status bar.
         try:
+            try:
+                _set_last_update_action(prefs, f"User skipped update {self.version_str}.{int(self.build_int or 0)}")
+            except Exception:
+                pass
+
             self.report({'INFO'}, f"Skipped version {self.version_str} build {int(self.build_int or 0)} for {channel_pref} channel.")
         except Exception:
             pass
@@ -1109,6 +1143,7 @@ class I3D_OT_SkipUpdateVersion(bpy.types.Operator):
 class I3D_OT_DisableUpdateChecks(bpy.types.Operator):
     bl_idname = "i3d.disable_update_checks"
     bl_label = "Disable Update Checks"
+    bl_description = "Disable Update Checks."
     bl_options = {'INTERNAL'}
 
     def execute(self, context):
@@ -1468,6 +1503,14 @@ def _poll_update_result_timer():
         # Snapshot the offer so the dialog can redraw safely even if globals are cleared.
         global _I3D_UPDATE_OFFER
         _I3D_UPDATE_OFFER = dict(_I3D_UPDATE_RESULT)
+        try:
+            rv = _I3D_UPDATE_OFFER.get('remote_version')
+            if isinstance(rv, str):
+                rv = _parse_version_tuple(rv)
+            rb = int(_I3D_UPDATE_OFFER.get('remote_build', 0) or 0)
+            _set_last_update_action(prefs, f"Update available: {_format_version_build(rv, rb)}")
+        except Exception:
+            pass
         _invoke_op('i3d.update_available_dialog')
         _I3D_LAST_CHECK_WAS_MANUAL = False
 
@@ -1483,6 +1526,14 @@ def _poll_update_result_timer():
         msg = "No updates found."
         if _I3D_UPDATE_ERROR:
             msg = f"Failed to check for updates.\n\n{_I3D_UPDATE_ERROR}"
+
+        try:
+            if _I3D_UPDATE_ERROR:
+                _set_last_update_action(prefs, "Update check failed")
+            else:
+                _set_last_update_action(prefs, "No updates were found")
+        except Exception:
+            pass
 
         if not _invoke_op('i3d.update_check_info_dialog', title=title, message=msg):
             print("Unable to show update result dialog")
@@ -1873,6 +1924,7 @@ def request_alpha_beta_switch(old_channel, new_channel, context=None):
 class I3D_OT_ChannelSwitchDialog(bpy.types.Operator):
     bl_idname = "i3d.channel_switch_dialog"
     bl_label = "Update Channel Switch"
+    bl_description = "Update Channel Switch."
     bl_options = {'INTERNAL'}
 
     def invoke(self, context, event):
@@ -1957,6 +2009,7 @@ class I3D_OT_ChannelSwitchDialog(bpy.types.Operator):
 class I3D_OT_ChannelSwitchCommit(bpy.types.Operator):
     bl_idname = "i3d.channel_switch_commit"
     bl_label = "Commit Channel Switch"
+    bl_description = "Commit Channel Switch."
     bl_options = {'INTERNAL'}
 
     old_channel: bpy.props.StringProperty(default="BETA")
@@ -2018,6 +2071,7 @@ class I3D_OT_ChannelSwitchCommit(bpy.types.Operator):
 class I3D_OT_ChannelSwitchCancel(bpy.types.Operator):
     bl_idname = "i3d.channel_switch_cancel"
     bl_label = "Cancel Channel Switch"
+    bl_description = "Cancel Channel Switch."
     bl_options = {'INTERNAL'}
 
     old_channel: bpy.props.StringProperty(default="BETA")
@@ -2094,9 +2148,88 @@ def _download_zip_with_fallback(url_primary, url_secondary):
     raise RuntimeError("No download URL configured")
 
 
+# --------------------------------------------------------------
+# Full UI Redraw Helper (post-update)
+# --------------------------------------------------------------
+# After in-place updates (disable -> overwrite -> enable), Blender may keep some UI areas
+# visually "stale" until the user interacts or restarts. Tagging every area/region for redraw
+# (and nudging a window swap) refreshes the UI so newly-registered panels/buttons appear.
+
+def _force_full_ui_redraw_all_windows():
+    try:
+        wm = bpy.context.window_manager
+    except Exception:
+        wm = None
+
+    if not wm:
+        return
+
+    try:
+        windows = list(getattr(wm, "windows", []) or [])
+    except Exception:
+        windows = []
+
+    for win in windows:
+        scr = getattr(win, "screen", None)
+        if not scr:
+            continue
+
+        for area in getattr(scr, "areas", []) or []:
+            try:
+                area.tag_redraw()
+            except Exception:
+                pass
+
+            for region in getattr(area, "regions", []) or []:
+                try:
+                    region.tag_redraw()
+                except Exception:
+                    pass
+
+    # Extra nudge (safe best-effort): forces a window swap draw pass.
+    try:
+        bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=1)
+    except Exception:
+        pass
+
+
+def _schedule_full_ui_redraw_all_windows(iterations=5, first_interval=0.2, step_interval=0.15):
+    try:
+        remaining = int(iterations)
+    except Exception:
+        remaining = 3
+
+    state = {"remaining": max(1, remaining)}
+
+    def _timer():
+        try:
+            _force_full_ui_redraw_all_windows()
+        except Exception:
+            pass
+
+        state["remaining"] -= 1
+        if state["remaining"] <= 0:
+            return None
+        try:
+            return float(step_interval)
+        except Exception:
+            return 0.15
+
+    try:
+        bpy.app.timers.register(_timer, first_interval=float(first_interval))
+    except Exception:
+        # Fallback: at least do a single redraw attempt.
+        try:
+            _force_full_ui_redraw_all_windows()
+        except Exception:
+            pass
+
+
+
 class I3D_OT_PerformUpdate(bpy.types.Operator):
     bl_idname = "i3d.perform_update"
     bl_label = "Update Add-on"
+    bl_description = "Update Add-on."
     bl_options = {'INTERNAL'}
 
     def execute(self, context):
@@ -2272,11 +2405,18 @@ class I3D_OT_PerformUpdate(bpy.types.Operator):
                     except Exception:
                         pass
 
+                    # Force a full UI redraw so newly-added panels/tools appear without requiring a Blender restart.
+                    try:
+                        _schedule_full_ui_redraw_all_windows(iterations=6, first_interval=0.25, step_interval=0.15)
+                    except Exception:
+                        pass
+
                     # Record which update channel the current add-on build came from.
                     try:
                         prefs2 = _get_addon_prefs()
                         if prefs2 is not None:
                             prefs2.update_installed_channel = str(getattr(prefs2, 'update_channel', 'STABLE')).upper()
+                            prefs2.update_installed_by_updater = True
                     except Exception:
                         pass
 
@@ -2285,11 +2425,20 @@ class I3D_OT_PerformUpdate(bpy.types.Operator):
                     except Exception:
                         pass
 
+                    try:
+                        _set_last_update_action(prefs2 if prefs2 is not None else prefs, "Update successfully installed")
+                    except Exception:
+                        pass
+
                     _I3D_UPDATE_INSTALL_ERROR = None
                     return None
 
                 except Exception as e:
                     _I3D_UPDATE_INSTALL_ERROR = f"Install failed: {e}"
+                    try:
+                        _set_last_update_action(prefs, "Update install failed")
+                    except Exception:
+                        pass
                     try:
                         bpy.ops.i3d.update_failed_dialog('INVOKE_DEFAULT')
                     except Exception:
@@ -2312,6 +2461,7 @@ class I3D_OT_PerformUpdate(bpy.types.Operator):
 class I3D_OT_UpdateFailedDialog(bpy.types.Operator):
     bl_idname = "i3d.update_failed_dialog"
     bl_label = "Update Failed"
+    bl_description = "Update Failed."
     bl_options = {'INTERNAL'}
 
     def invoke(self, context, event):

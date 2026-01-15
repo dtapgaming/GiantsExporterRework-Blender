@@ -69,6 +69,7 @@ def get_selected_uvs(obj):
 class UV_OP_moveToVehicleArray(bpy.types.Operator):
     bl_idname = "uv.move_to_vehicle_array"
     bl_label  = "Move UVs to FS25 Slot"
+    bl_description = "Move UVs to FS25 Slot: clears/removes the current selection."
     bl_options = {'UNDO'}
 
     material_id: bpy.props.IntProperty()
@@ -124,6 +125,7 @@ class UV_OP_moveToVehicleArray(bpy.types.Operator):
 class UV_OP_moveVehicleArrayNudge(bpy.types.Operator):
     bl_idname = "uv.move_vehicle_array_nudge"
     bl_label  = "Nudge UV Tile"
+    bl_description = "Nudge UV Tile: clears/removes the current selection."
     bl_options = {'UNDO'}
 
     dx: bpy.props.IntProperty(default=0)
@@ -187,6 +189,7 @@ class I3D_VehicleArraySettings(bpy.types.PropertyGroup):
 class I3D_OT_ToggleShowMore(bpy.types.Operator):
     bl_idname = "i3d.toggle_show_more"
     bl_label = "Toggle Show More"
+    bl_description = "Toggle Show More."
 
     target: bpy.props.StringProperty()
     state: bpy.props.BoolProperty()

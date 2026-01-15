@@ -9,6 +9,44 @@ except:
 
 g_shaderDataCache = {}
 
+
+def _i3d_resolve_giants_path(p: str) -> str:
+    """Resolve GIANTS-style paths (e.g. '$data/...') using the best-known game install path.
+
+    Historically this file used a simple string replace against
+    scene.I3D_UIexportSettings.i3D_gameLocationDisplay. That breaks when:
+      - the scene value isn't initialized yet, or
+      - the value doesn't include a trailing path separator, or
+      - the user only set the install path in addon preferences.
+
+    This helper resolves '$' paths safely and returns an empty string when the
+    game path is unavailable.
+    """
+    if not p:
+        return p
+
+    # Only attempt GIANTS resolution if a '$' is present.
+    if "$" not in p:
+        return p
+
+    game_path = ""
+    try:
+        # Prefer addon preferences (portable, persistent)
+        from ..helpers.pathHelper import getGamePath as _getGamePath, resolveGiantsPath as _resolve
+        game_path = _getGamePath() or ""
+        if not game_path:
+            game_path = getattr(bpy.context.scene.I3D_UIexportSettings, "i3D_gameLocationDisplay", "") or ""
+
+        resolved = _resolve(p, game_path)
+        return resolved or ""
+    except Exception:
+        # Fallback to legacy scene value if available
+        try:
+            game_path = getattr(bpy.context.scene.I3D_UIexportSettings, "i3D_gameLocationDisplay", "") or ""
+        except Exception:
+            game_path = ""
+        return p.replace("$", game_path) if game_path else ""
+
 def extractXMLShaderData(xmlFile):
     """
     Extracts the data from the specified file
@@ -17,8 +55,12 @@ def extractXMLShaderData(xmlFile):
     to the data contained in the file
     :returns: None if file is not valid
     """
-    if xmlFile[0] == "$":
-        xmlFile = bpy.context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay + xmlFile[1:]
+    if xmlFile and xmlFile[0] == "$":
+        resolved = _i3d_resolve_giants_path(xmlFile)
+        if not resolved:
+            print('Could not resolve xml file! (%s)' % xmlFile)
+            return None
+        xmlFile = resolved
 
     if xmlFile in g_shaderDataCache:
         return g_shaderDataCache[xmlFile]
@@ -166,9 +208,13 @@ def getParameterTemplatesFromShaderFile(xmlRoot):
             if parameterTemplateFilename is not None:
                 tree = None
                 try:
-                    templatesXmlFilename = parameterTemplateFilename.replace("$", bpy.context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay)
+                    templatesXmlFilename = _i3d_resolve_giants_path(parameterTemplateFilename)
+                    if not templatesXmlFilename or ("$" in templatesXmlFilename) or (not os.path.isfile(templatesXmlFilename)):
+                        raise FileNotFoundError(templatesXmlFilename)
                     tree = xml_ET.parse(templatesXmlFilename)
                 except xml_ET.ParseError as err:
+                    print("Failed to load parameter templates from '%s': %s" % (templatesXmlFilename, err))
+                except (OSError, FileNotFoundError) as err:
                     print("Failed to load parameter templates from '%s': %s" % (templatesXmlFilename, err))
                 else:
                     templatesFileRoot = tree.getroot()
@@ -183,9 +229,13 @@ def getParameterTemplatesFromShaderFile(xmlRoot):
                     parentId = None
                     if parentTemplateFilename is not None:
                         try:
-                            templatesXmlFilename = parentTemplateFilename.replace("$", bpy.context.scene.I3D_UIexportSettings.i3D_gameLocationDisplay)
+                            templatesXmlFilename = _i3d_resolve_giants_path(parentTemplateFilename)
+                            if not templatesXmlFilename or ("$" in templatesXmlFilename) or (not os.path.isfile(templatesXmlFilename)):
+                                raise FileNotFoundError(templatesXmlFilename)
                             parentTree = xml_ET.parse(templatesXmlFilename)
                         except xml_ET.ParseError as err:
+                            print("Failed to load parameter templates from '%s': %s" % (templatesXmlFilename, err))
+                        except (OSError, FileNotFoundError) as err:
                             print("Failed to load parameter templates from '%s': %s" % (templatesXmlFilename, err))
                         else:
                             parentTemplatesFileRoot = parentTree.getroot()

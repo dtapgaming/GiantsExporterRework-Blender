@@ -38,7 +38,7 @@ class I3D_PT_vertexColor( bpy.types.Panel ):
     bl_label        = "GIANTS Vertex Color Tool"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "GIANTS I3D Exporter"
+    bl_category = "GIANTS I3D Exporter REWORKED"
 
     # keep name of the active color_layer 
     # and use it in different places 
@@ -100,6 +100,11 @@ class I3D_PT_vertexColor( bpy.types.Panel ):
 
     def draw(self, context):
         layout = self.layout
+        ui = getattr(context.scene, "TOOLS_UIVertexColor", None)
+        if ui is None:
+            layout.label(text="Vertex Color UI properties not registered (TOOLS_UIVertexColor).", icon='ERROR')
+            layout.label(text="Try: Preferences → Add-ons → disable/enable the add-on.")
+            return
         # ------------------
         row = layout.row()
         row.operator('tools.vertexcolorview',text = 'Toggle Vertex Color Mode')
@@ -113,19 +118,31 @@ class I3D_PT_vertexColor( bpy.types.Panel ):
         col.label( text = " RGBA : " )
         split = split.split()
         col = split.column()
-        m_colorLayerName, m_activeVertexIndex, m_activeRGBA = self.__getActive_ColorLayerName_VertexIndex_RGBA(context)
+        # NOTE: Blender can crash (EXCEPTION_ACCESS_VIOLATION) if we touch BMesh/loops while a modal
+        # operator is running (e.g. UV rip/move, loopcut slide, translate). To keep Blender stable,
+        # pause the live preview during modal operators.
+        _wm_ops = ()
+        try:
+            _wm_ops = getattr(context.window_manager, "operators", ())
+        except Exception:
+            _wm_ops = ()
+
+        if context.mode == 'EDIT_MESH' and _wm_ops and len(_wm_ops) > 0:
+            m_colorLayerName, m_activeVertexIndex, m_activeRGBA = ("(preview paused)", "-", "-")
+        else:
+            m_colorLayerName, m_activeVertexIndex, m_activeRGBA = self.__getActive_ColorLayerName_VertexIndex_RGBA(context)
         col.label( text = "{}".format( m_colorLayerName ) )
         col.label( text = "{}".format( m_activeVertexIndex) )
         col.label( text = "{}".format( m_activeRGBA ) )
         row = box.row()
-        row.prop(context.scene.TOOLS_UIVertexColor,'activeVertexIndex')
+        row.prop(ui, 'activeVertexIndex')
         row = box.row()
         split = row.split(factor=0.6)
         col = split.column()
-        col.prop(context.scene.TOOLS_UIVertexColor,'colorR')
-        col.prop(context.scene.TOOLS_UIVertexColor,'colorG')
-        col.prop(context.scene.TOOLS_UIVertexColor,'colorB')
-        col.prop(context.scene.TOOLS_UIVertexColor,'colorA')
+        col.prop(ui, 'colorR')
+        col.prop(ui, 'colorG')
+        col.prop(ui, 'colorB')
+        col.prop(ui, 'colorA')
         split = split.split()
         col = split.column()
         col.operator("tools.vertexcoloradjust",text="Get R").state = 1
@@ -143,7 +160,7 @@ class I3D_PT_vertexColor( bpy.types.Panel ):
         row.operator("tools.vertexcoloradjust",text="Set RGBA").state = 5
         # ------------------
         row = layout.row()
-        row.prop(context.scene.TOOLS_UIVertexColor,'colorEnum', expand=True)
+        row.prop(ui, 'colorEnum', expand=True)
         row = layout.row()
         row.operator("tools.vertexcolorpopupactionbutton",text="Color Mesh").state = 0
         row.operator("tools.vertexcolorpopupactionbutton",text="Color Selected Faces").state = 1
@@ -161,20 +178,27 @@ class TOOLS_UIVertexColor( bpy.types.PropertyGroup ):
 
     @classmethod
     def register( cls ):
-        bpy.types.Scene.TOOLS_UIVertexColor = bpy.props.PointerProperty(
-            name = "Tools UI Vertex Color",
-            type =  cls,
-            description = "Tools UI Vertex Color"
-        )
+        # Blender does NOT automatically call PropertyGroup.register() when
+        # bpy.utils.register_class() is used. We call this explicitly from the
+        # module register() below.
+        if not hasattr(bpy.types.Scene, "TOOLS_UIVertexColor"):
+            bpy.types.Scene.TOOLS_UIVertexColor = bpy.props.PointerProperty(
+                name="Tools UI Vertex Color",
+                type=cls,
+                description="Tools UI Vertex Color",
+            )
     @classmethod
     def unregister( cls ):
-        if bpy.context.scene.get( 'TOOLS_UIVertexColor' ):  del bpy.context.scene[ 'TOOLS_UIVertexColor' ]
-        try:    del bpy.types.Scene.TOOLS_UIVertexColor
-        except: pass
+        try:
+            if hasattr(bpy.types.Scene, "TOOLS_UIVertexColor"):
+                del bpy.types.Scene.TOOLS_UIVertexColor
+        except Exception:
+            pass
         
 class TOOLS_OT_vertexColorAdjust(bpy.types.Operator):
     
     bl_label = "Vertex Color Adjust"
+    bl_description = "Vertex Color Adjust."
     bl_idname = "tools.vertexcoloradjust"
     bl_options = {'UNDO'}
     state : bpy.props.IntProperty( name = "State", default = 0 )
@@ -360,6 +384,7 @@ def setColorByVertIndex( m_bm, m_layer_name, m_selectedVerts, m_color, m_mode = 
 class I3D_OT_vertexColorPopUp(bpy.types.Operator):
     
     bl_label = "Vertex Color"
+    bl_description = "Vertex Color."
     bl_idname = "i3d.vertexcolorpopup"
     state : bpy.props.IntProperty(name = "State", default = 0)
     
@@ -384,6 +409,7 @@ class I3D_OT_vertexColorPopUp(bpy.types.Operator):
 class TOOLS_OT_vertexColorView(bpy.types.Operator):
     
     bl_label = "Vertex Color Toggle"
+    bl_description = "Vertex Color Toggle."
     bl_idname = "tools.vertexcolorview"
     previous_mode = 'MATERIAL' #bpy.props.StringProperty(name='MATERIAL')
     
@@ -401,6 +427,7 @@ class TOOLS_OT_vertexColorView(bpy.types.Operator):
 class TOOLS_OT_vertexColorPopUpActionButton(bpy.types.Operator):
     
     bl_label = "Action Button"
+    bl_description = "Action Button."
     bl_idname = "tools.vertexcolorpopupactionbutton"
     state : bpy.props.IntProperty(name = "State", default=0)
 
@@ -469,6 +496,10 @@ def register():
     """ Register UI elements """
     
     bpy.utils.register_class(TOOLS_UIVertexColor)
+    try:
+        TOOLS_UIVertexColor.register()
+    except Exception:
+        pass
     bpy.utils.register_class(I3D_OT_vertexColorPopUp)
     bpy.utils.register_class(TOOLS_OT_vertexColorPopUpActionButton)
     bpy.utils.register_class(TOOLS_OT_vertexColorView)
@@ -477,11 +508,15 @@ def register():
     
 def unregister():
     """ Unregister UI elements """    
-    
+
     bpy.utils.unregister_class(TOOLS_OT_vertexColorView)
     bpy.utils.unregister_class(TOOLS_OT_vertexColorPopUpActionButton)
     bpy.utils.unregister_class(I3D_OT_vertexColorPopUp)
     bpy.utils.unregister_class(TOOLS_OT_vertexColorAdjust)
+    try:
+        TOOLS_UIVertexColor.unregister()
+    except Exception:
+        pass
     bpy.utils.unregister_class(TOOLS_UIVertexColor)
     
 

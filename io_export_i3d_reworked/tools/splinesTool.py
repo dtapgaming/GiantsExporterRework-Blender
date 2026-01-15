@@ -29,7 +29,7 @@ class I3D_PT_splines( bpy.types.Panel ):
     bl_label        = "GIANTS Splines Tool"
     bl_space_type   = 'VIEW_3D'
     bl_region_type  = 'UI'
-    bl_category     = "GIANTS I3D Exporter"
+    bl_category     = "GIANTS I3D Exporter REWORKED"
     
     def __getSplineLength(self,context):
         """ Update function to display active spline  length """
@@ -59,6 +59,7 @@ class I3D_PT_splines( bpy.types.Panel ):
 class I3D_OT_splineToolPopUp(bpy.types.Operator):
     
     bl_label = "Splines Tool"
+    bl_description = "Splines Tool."
     bl_idname = "i3d.splinetoolpopup"
     state : bpy.props.IntProperty(name = "State", default = 0)
     
