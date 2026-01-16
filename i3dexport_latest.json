@@ -55,7 +55,7 @@
         "Stops the generated setup from needing manual Y-axis dragging to re-align with rollers.",
         "Track Array Tools tutorial link updated to GamerDesigns New Tutorial using this tool in its Alpha Build State."
       ],
-      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.17.10BETA",
+      "notes_url": "https://github.com/dtapgaming/GiantsExporterRework-Blender/releases/tag/10.0.17.63ALPHA",
       "message": "A New Beta Build Is Available.",
       "build": 63
     },
